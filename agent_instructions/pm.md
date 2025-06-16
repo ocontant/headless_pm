@@ -69,12 +69,20 @@ POST /api/v1/features?agent_id=your_agent_id
 ```
 
 ### Create Tasks
+
+**Important**: Always provide detailed, comprehensive descriptions in both tasks and documents. The description field should include:
+- Clear requirements and acceptance criteria
+- Technical context and constraints
+- Expected outcomes and deliverables
+- Any dependencies or prerequisites
+- References to related tasks or documents
+
 ```json
 POST /api/v1/tasks/create?agent_id=your_agent_id
 {
   "feature_id": 1,
   "title": "Implement registration form",
-  "description": "Create React form with email/password fields and validation",
+  "description": "Create a comprehensive user registration form for the web application.\n\n**Requirements:**\n- Email field with validation (required, valid email format)\n- Password field with strength requirements (min 8 chars, 1 uppercase, 1 number)\n- Password confirmation field with matching validation\n- Terms of service checkbox (required)\n- Submit button with loading state\n\n**Technical Specifications:**\n- Use React Hook Form for form management\n- Implement client-side validation with Yup schema\n- Show inline error messages below each field\n- Disable form during submission\n- Handle API errors gracefully with user-friendly messages\n\n**API Integration:**\n- POST to /api/auth/register endpoint\n- Handle 409 conflict for existing emails\n- Show success message and redirect to login on completion\n\n**Accessibility:**\n- Proper ARIA labels for all form fields\n- Keyboard navigation support\n- Screen reader friendly error messages",
   "target_role": "frontend_dev",
   "difficulty": "senior",
   "complexity": "minor",
@@ -88,6 +96,9 @@ POST /api/v1/tasks/create?agent_id=your_agent_id
 - `GET /api/v1/agents` - List all team members
 
 ## Team Coordination
+
+**Best Practice**: When creating documents, always use the content field to provide comprehensive information. Include context, details, action items, and clear next steps. This ensures all team members have the information they need without having to ask follow-up questions.
+
 Daily standups and check-ins:
 ```json
 POST /api/v1/documents?author_id=your_agent_id

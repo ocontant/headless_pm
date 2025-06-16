@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship, JSON, Column
+from sqlalchemy import Text
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from .enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity
@@ -17,7 +18,7 @@ class Agent(SQLModel, table=True):
 class Epic(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    description: str
+    description: str = Field(sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     features: List["Feature"] = Relationship(back_populates="epic")
@@ -26,7 +27,7 @@ class Feature(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     epic_id: int = Field(foreign_key="epic.id")
     name: str
-    description: str
+    description: str = Field(sa_column=Column(Text))
     
     epic: Epic = Relationship(back_populates="features")
     tasks: List["Task"] = Relationship(back_populates="feature")
@@ -35,7 +36,7 @@ class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     feature_id: int = Field(foreign_key="feature.id")
     title: str
-    description: str
+    description: str = Field(sa_column=Column(Text))
     created_by_id: int = Field(foreign_key="agent.id")
     target_role: AgentRole
     difficulty: DifficultyLevel
@@ -44,7 +45,7 @@ class Task(SQLModel, table=True):
     status: TaskStatus = Field(default=TaskStatus.CREATED)
     locked_by_id: Optional[int] = Field(default=None, foreign_key="agent.id")
     locked_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
@@ -60,7 +61,7 @@ class TaskEvaluation(SQLModel, table=True):
     task_id: int = Field(foreign_key="task.id")
     evaluated_by: str  # agent_id
     approved: bool
-    comment: Optional[str] = None
+    comment: Optional[str] = Field(default=None, sa_column=Column(Text))
     evaluated_at: datetime = Field(default_factory=datetime.utcnow)
     
     task: Task = Relationship(back_populates="evaluations")
@@ -71,7 +72,7 @@ class Changelog(SQLModel, table=True):
     old_status: TaskStatus
     new_status: TaskStatus
     changed_by: str  # agent_id
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, sa_column=Column(Text))
     changed_at: datetime = Field(default_factory=datetime.utcnow)
     
     task: Task = Relationship(back_populates="changelogs")
@@ -81,7 +82,7 @@ class Document(SQLModel, table=True):
     doc_type: DocumentType = Field(index=True)
     author_id: str = Field(index=True)  # agent_id
     title: str = Field(max_length=200)
-    content: str  # Markdown supported
+    content: str = Field(sa_column=Column(Text))  # Markdown supported
     meta_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

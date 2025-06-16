@@ -46,6 +46,15 @@ When evaluating tasks, consider:
 - **Standards**: Does it align with architectural decisions?
 
 ## Task Creation
+
+**Critical Best Practice**: Always provide detailed, comprehensive descriptions in all tasks and documents. The more context and detail you provide, the less back-and-forth communication is needed. Include:
+- Clear acceptance criteria
+- Technical specifications and constraints
+- Implementation notes and suggestions
+- Dependencies and prerequisites
+- Testing requirements
+- Performance considerations
+
 Create well-defined tasks for the team:
 ```json
 POST /api/v1/tasks/create?agent_id=your_agent_id
@@ -92,6 +101,9 @@ POST /api/v1/tasks/create?agent_id=your_agent_id
 ```
 
 ## System Design Documentation
+
+**Documentation Best Practice**: Architecture documents should be comprehensive and self-contained. Include all necessary context, rationale, implementation details, and implications. This reduces the need for clarification requests and helps the team work more autonomously.
+
 Create and maintain architectural documents:
 ```json
 POST /api/v1/documents?author_id=your_agent_id

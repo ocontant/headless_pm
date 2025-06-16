@@ -46,10 +46,22 @@ Only documentation that will become permanent part of the project should be save
 - **documentation_done** → **committed** (after merge)
 
 ## Communication
+
+**Important**: Always provide detailed, comprehensive content in documents and task comments. Include full context, technical details, steps to reproduce issues, and clear action items. This reduces communication overhead and helps the team work more efficiently.
+
 - Use @mentions in documents and task comments to notify specific agents
 - Report critical issues: `doc_type: "critical_issue"`
 - Share progress updates: `doc_type: "update"`
 - Post status updates when needed: `doc_type: "standup"`
+
+### Example: Reporting an Issue
+```json
+POST /api/v1/documents?author_id=your_agent_id
+{
+  "doc_type": "critical_issue",
+  "title": "API Integration Failure - User Profile Endpoint",
+  "content": "# Critical Issue: User Profile API Not Working\n\n## Problem Description\nThe user profile component cannot fetch data from the backend API endpoint `/api/users/profile`.\n\n## Error Details\n- **Error Code**: 500 Internal Server Error\n- **Response**: `{\"error\": \"Database connection timeout\"}`\n- **Frequency**: Occurs on every request\n- **Started**: Today at 2:30 PM\n\n## Steps to Reproduce\n1. Log in to the application\n2. Navigate to Profile page (/profile)\n3. Observe network tab - request fails\n\n## Impact\n- Users cannot view or edit their profiles\n- Blocking completion of task #234 (Profile UI implementation)\n- Affects all environments (dev, staging)\n\n## Attempted Solutions\n- Verified API endpoint URL is correct\n- Confirmed authentication token is being sent\n- Tested with different user accounts\n- Cleared browser cache and cookies\n\n## Screenshots/Logs\nNetwork error screenshot saved to: `${SHARED_PATH}/screenshots/profile-api-error.png`\nConsole logs: `${SHARED_PATH}/logs/frontend-console-2024-01-15.log`\n\n## Required Action\n@backend_dev_senior_001 Please investigate the database connection issue urgently. This is blocking frontend development.\n\n## Temporary Workaround\nI've implemented mock data for local development, but we need the real API working for integration testing."
+}
 
 ## Tools & Environment
 - Check `GET /api/v1/services` for running services

@@ -68,10 +68,22 @@ POST http://localhost:6969/api/v1/services/api/heartbeat?agent_id=your_agent_id
 ```
 
 ## Communication
+
+**Best Practice**: Always provide comprehensive details in documents and comments. Include technical context, error messages, stack traces, configuration details, and clear reproduction steps. This helps team members understand and resolve issues faster.
+
 - Use @mentions to notify frontend developers about API changes
 - Post service status updates: `doc_type: "service_status"`
 - Report critical issues: `doc_type: "critical_issue"`
 - Share progress updates: `doc_type: "update"`
+
+### Example: API Change Notification
+```json
+POST /api/v1/documents?author_id=your_agent_id
+{
+  "doc_type": "update",
+  "title": "API Breaking Change - User Authentication Endpoint",
+  "content": "# Important: Authentication API Changes\n\n## Summary\nThe user authentication endpoint is being updated to improve security and add refresh token support.\n\n## Changes\n\n### Old Endpoint\n```\nPOST /api/auth/login\nBody: { \"email\": \"user@example.com\", \"password\": \"pass123\" }\nResponse: { \"token\": \"jwt_token_here\" }\n```\n\n### New Endpoint\n```\nPOST /api/v2/auth/login\nBody: { \"email\": \"user@example.com\", \"password\": \"pass123\" }\nResponse: {\n  \"access_token\": \"jwt_access_token\",\n  \"refresh_token\": \"jwt_refresh_token\",\n  \"expires_in\": 3600,\n  \"token_type\": \"Bearer\"\n}\n```\n\n## Migration Guide\n1. Update API endpoint URL from `/api/auth/login` to `/api/v2/auth/login`\n2. Update response handling to use `access_token` instead of `token`\n3. Store `refresh_token` securely for token renewal\n4. Add token refresh logic before access token expiration\n\n## Timeline\n- **Now**: New endpoint available for testing\n- **Next Monday**: Old endpoint will return deprecation warning\n- **In 2 weeks**: Old endpoint will be removed\n\n## Frontend Impact\n@frontend_dev_senior_001 @frontend_dev_senior_002 Please update the authentication service to use the new endpoint structure. I've created a migration guide in the docs folder.\n\n## Testing\n- Staging environment already updated\n- Test credentials remain the same\n- New Postman collection available at: `${SHARED_PATH}/postman/auth-v2-collection.json`\n\n## Questions?\nI'm available for any clarification. Also scheduled a team sync tomorrow at 10 AM to discuss the migration."
+}
 
 ## Skill Levels
 - **junior**: CRUD endpoints, basic validations, simple queries
