@@ -136,7 +136,7 @@ class HeadlessPMDashboard:
             # Count open tasks for this agent
             open_tasks_count = len(db.exec(
                 select(Task).where(
-                    Task.locked_by_agent_id == agent.id,
+                    Task.locked_by_id == agent.id,
                     Task.status != TaskStatus.COMMITTED
                 )
             ).all())

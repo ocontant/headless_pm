@@ -28,7 +28,7 @@ def migrate():
         else:
             # MySQL migrations
             migrations = [
-                "ALTER TABLE service ADD COLUMN ping_url TEXT NOT NULL DEFAULT '';",
+                "ALTER TABLE service ADD COLUMN ping_url VARCHAR(500) NOT NULL DEFAULT '';",
                 "ALTER TABLE service ADD COLUMN last_ping_at DATETIME NULL;",
                 "ALTER TABLE service ADD COLUMN last_ping_success BOOLEAN NULL;"
             ]
