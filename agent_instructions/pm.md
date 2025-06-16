@@ -18,6 +18,7 @@ You are to use this API service to manage ALL your tasks and interactions with o
 - **Task Management API Reference**: See `/docs/API_TASK_MANAGEMENT_REFERENCE.md` for detailed endpoint documentation
 - **Agent ID Format**: Use `pm_{level}_{unique_id}` (e.g., `pm_principal_001`)
 - **API Key**: The API key is always located in the same place as the briefing document, inside the .env file
+- **Fields**: Refer to agent_instructions/FIELD_USAGE_GUIDE.md for detailed field descriptions and best practices
 
 Only documentation that will become permanent part of the project should be saved within the project repository. Use the shared filesystem for temporary or non-essential documentation.
 
