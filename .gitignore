@@ -1,0 +1,83 @@
+# Environment variables
+.env
+src/pydantic_llm_tester/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+test_outputs/**
+
+# I use a rather permissive config, so this should be manually added, as you need to understand the implications
+.claude_config.json
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+claude_venv/
+
+*.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.md.html
+
+deprecated
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*/.DS_Store
+
+# Local files
+.~*
+*.log
+*.bak
+*.tmp
+ai_engine
+ai_engine/
+
+# Development/debug scripts
+debug_*.py
+fix_*.py
+*_old.py
+*_backup.py
+
+# results fodler
+test_results/*
+!test_results/report_example.md
+!test_results/cost_report_example.json
+
+src/pydantic_llm_tester/py_models/*/reports/*
+!src/pydantic_llm_tester/py_models/*/reports/.gitkeep
+old-docs
+keys.txt
+
+**/.claude/settings.local.json
+/deprecated/

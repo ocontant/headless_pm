@@ -1,0 +1,24 @@
+{
+  "git": {
+    "main_branch": "main",
+    "commit_directly_to_main": ["minor_fix", "documentation", "config_update"],
+    "require_pr_for": ["major_feature", "breaking_change", "refactor"]
+  },
+  "task_classification": {
+    "minor": {
+      "keywords": ["fix", "update", "adjust", "correct", "patch"],
+      "max_story_points": 3,
+      "commit_to_main": true
+    },
+    "major": {
+      "keywords": ["implement", "create", "build", "develop", "add"],
+      "min_story_points": 5,
+      "require_pr": true
+    }
+  },
+  "pr_settings": {
+    "auto_assign_reviewers": ["architect", "pm"],
+    "require_tests": true,
+    "require_documentation": true
+  }
+}

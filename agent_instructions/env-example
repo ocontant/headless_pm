@@ -1,0 +1,3 @@
+# Your client system needs this key to communicate with the API
+
+API_KEY="XXXXXX"
