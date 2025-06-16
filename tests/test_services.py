@@ -11,6 +11,7 @@ def test_service_registration(session: Session, sample_data):
     service = Service(
         service_name="api",
         owner_agent_id=backend_dev.agent_id,
+        ping_url="http://localhost:8000/health",
         port=8000,
         status=ServiceStatus.UP,
         meta_data={"start_command": "uvicorn main:app", "version": "1.0.0"}
@@ -20,6 +21,7 @@ def test_service_registration(session: Session, sample_data):
     
     saved_service = session.get(Service, service.id)
     assert saved_service.service_name == "api"
+    assert saved_service.ping_url == "http://localhost:8000/health"
     assert saved_service.port == 8000
     assert saved_service.status == ServiceStatus.UP
     assert saved_service.meta_data["version"] == "1.0.0"
@@ -33,6 +35,7 @@ def test_service_unique_name(session: Session, sample_data):
     service1 = Service(
         service_name="web",
         owner_agent_id=frontend_dev.agent_id,
+        ping_url="http://localhost:3000/health",
         port=3000,
         status=ServiceStatus.UP
     )
@@ -43,6 +46,7 @@ def test_service_unique_name(session: Session, sample_data):
     service2 = Service(
         service_name="web",
         owner_agent_id=backend_dev.agent_id,
+        ping_url="http://localhost:3001/health",
         port=3001,
         status=ServiceStatus.UP
     )
@@ -59,6 +63,7 @@ def test_service_heartbeat(session: Session, sample_data):
     service = Service(
         service_name="test-runner",
         owner_agent_id=qa.agent_id,
+        ping_url="http://localhost:4000/health",
         port=4000,
         status=ServiceStatus.UP,
         last_heartbeat=datetime.utcnow()
@@ -85,6 +90,7 @@ def test_service_status_transitions(session: Session, sample_data):
     service = Service(
         service_name="database",
         owner_agent_id=backend_dev.agent_id,
+        ping_url="http://localhost:5432/health",
         port=5432,
         status=ServiceStatus.DOWN
     )
@@ -116,6 +122,7 @@ def test_service_without_port(session: Session, sample_data):
     service = Service(
         service_name="task-scheduler",
         owner_agent_id=architect.agent_id,
+        ping_url="http://localhost:8080/worker/health",
         status=ServiceStatus.UP,
         meta_data={"type": "background_worker", "interval": "5m"}
     )
@@ -134,18 +141,21 @@ def test_multiple_services_per_agent(session: Session, sample_data):
         Service(
             service_name="api-v1",
             owner_agent_id=backend_dev.agent_id,
+            ping_url="http://localhost:8000/health",
             port=8000,
             status=ServiceStatus.UP
         ),
         Service(
             service_name="api-v2",
             owner_agent_id=backend_dev.agent_id,
+            ping_url="http://localhost:8001/health",
             port=8001,
             status=ServiceStatus.UP
         ),
         Service(
             service_name="worker",
             owner_agent_id=backend_dev.agent_id,
+            ping_url="http://localhost:8080/worker/health",
             status=ServiceStatus.UP
         )
     ]
@@ -170,6 +180,7 @@ def test_service_meta_data_update(session: Session, sample_data):
     service = Service(
         service_name="frontend",
         owner_agent_id=frontend_dev.agent_id,
+        ping_url="http://localhost:3000/health",
         port=3000,
         status=ServiceStatus.UP,
         meta_data={"framework": "react", "version": "18.0"}

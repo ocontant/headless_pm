@@ -140,6 +140,7 @@ class DocumentResponse(BaseModel):
 # Service schemas
 class ServiceRegisterRequest(BaseModel):
     service_name: str = Field(..., description="Unique service name", max_length=100)
+    ping_url: str = Field(..., description="URL to ping for health check (e.g., http://localhost:8080/health)")
     port: Optional[int] = Field(None, description="Port number if applicable")
     status: ServiceStatus = Field(ServiceStatus.UP, description="Service status")
     meta_data: Optional[Dict[str, Any]] = Field(None, description="Additional service meta_data")
@@ -148,9 +149,12 @@ class ServiceResponse(BaseModel):
     id: int
     service_name: str
     owner_agent_id: str
+    ping_url: str
     port: Optional[int] = None
     status: ServiceStatus
     last_heartbeat: Optional[datetime] = None
+    last_ping_at: Optional[datetime] = None
+    last_ping_success: Optional[bool] = None
     meta_data: Optional[Dict[str, Any]] = None
     updated_at: datetime
     

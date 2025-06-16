@@ -172,6 +172,7 @@ class HeadlessPMDashboard:
         table = Table(title="Services", box=box.MINIMAL)
         table.add_column("Service", style="cyan")
         table.add_column("Status", style="green")
+        table.add_column("Health", style="magenta")
         table.add_column("Port", justify="right")
         table.add_column("Owner", style="yellow")
         
@@ -182,12 +183,26 @@ class HeadlessPMDashboard:
                 ServiceStatus.STARTING: "🟡"
             }.get(service.status, "❓")
             
+            # Health check status
+            if service.last_ping_at:
+                time_since_ping = datetime.utcnow() - service.last_ping_at
+                if time_since_ping < timedelta(minutes=2):
+                    if service.last_ping_success:
+                        health_str = "✅ Healthy"
+                    else:
+                        health_str = "❌ Failed"
+                else:
+                    health_str = "⏰ Stale"
+            else:
+                health_str = "🔍 Never"
+            
             port_str = str(service.port) if service.port else "-"
-            owner = service.owner_agent_id.split('_')[0] if service.owner_agent_id else "-"
+            owner = service.owner_agent_id
             
             table.add_row(
                 service.service_name,
                 f"{status_icon} {service.status.value}",
+                health_str,
                 port_str,
                 owner
             )

@@ -109,6 +109,8 @@ POST /api/v1/features?agent_id=your_agent_id
 - Any dependencies or prerequisites
 - References to related tasks or documents
 
+**Tip**: Use single quotes around JSON in curl commands to avoid escaping issues. See /docs/JSON_ESCAPING_GUIDE.md for details.
+
 ```json
 POST /api/v1/tasks/create?agent_id=your_agent_id
 {

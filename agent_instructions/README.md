@@ -26,3 +26,31 @@ It's easiest to  drop this entire directory into the root of your project. Then 
 - Swagger UI: `http://localhost:6969/api/v1/docs`
 - ReDoc: `http://localhost:6969/api/v1/redoc`
 - OpenAPI Schema: `http://localhost:6969/api/v1/openapi.json`
+
+## JSON Escaping for API Calls
+
+**Important**: When making API calls with curl, use proper JSON escaping to avoid errors:
+
+1. **Use single quotes** around JSON (recommended):
+   ```bash
+   curl -X POST "http://localhost:6969/api/v1/documents?author_id=your_id" \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: development-key" \
+     -d '{"doc_type": "update", "title": "My Update", "content": "Status: OK"}'
+   ```
+
+2. **For complex content**, use heredoc:
+   ```bash
+   curl -X POST "http://localhost:6969/api/v1/documents?author_id=your_id" \
+     -H "Content-Type: application/json" \
+     -H "X-API-Key: development-key" \
+     -d @- <<'EOF'
+   {
+     "doc_type": "critical_issue",
+     "title": "Database Error",
+     "content": "Error: \"Connection timeout\"\nThis is critical!"
+   }
+   EOF
+   ```
+
+See `/docs/JSON_ESCAPING_GUIDE.md` for more examples and `/examples/create_document_curl.sh` for working code.

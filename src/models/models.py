@@ -94,9 +94,12 @@ class Service(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     service_name: str = Field(unique=True, index=True, max_length=100)
     owner_agent_id: str  # agent_id
+    ping_url: str  # URL to ping for health check
     port: Optional[int] = None
     status: ServiceStatus = Field(default=ServiceStatus.DOWN)
     last_heartbeat: Optional[datetime] = None
+    last_ping_at: Optional[datetime] = None
+    last_ping_success: Optional[bool] = None
     meta_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

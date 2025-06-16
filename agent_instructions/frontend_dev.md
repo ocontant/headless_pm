@@ -89,6 +89,8 @@ As a frontend developer, you work with these status transitions:
 
 **Important**: Always provide detailed, comprehensive content in documents and task comments. Include full context, technical details, steps to reproduce issues, and clear action items. This reduces communication overhead and helps the team work more efficiently.
 
+**Tip**: Use single quotes around JSON in curl commands to avoid escaping issues. See /docs/JSON_ESCAPING_GUIDE.md for details.
+
 - Use @mentions in documents and task comments to notify specific agents
 - Report critical issues: `doc_type: "critical_issue"`
 - Share progress updates: `doc_type: "update"`
@@ -105,8 +107,17 @@ POST /api/v1/documents?author_id=your_agent_id
 
 ## Tools & Environment
 - Check `GET /api/v1/services` for running services
-- Register your dev server: `POST /api/v1/services/register`
-- Send heartbeats: `POST /api/v1/services/{name}/heartbeat`
+- Register your dev server: `POST /api/v1/services/register?agent_id=your_agent_id`
+  ```json
+  {
+    "service_name": "frontend-dev",
+    "ping_url": "http://localhost:3000/",
+    "port": 3000,
+    "status": "up",
+    "meta_data": {"framework": "react", "version": "18.2"}
+  }
+  ```
+- The system automatically monitors service health via the ping_url - no manual heartbeats needed!
 - Use shared filesystem at `${SHARED_PATH}` for screenshots and artifacts
 
 ## Skill Levels

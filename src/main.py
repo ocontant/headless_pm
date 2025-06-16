@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
+import asyncio
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 
 load_dotenv()
 
@@ -12,6 +14,16 @@ from src.api.document_routes import router as document_router
 from src.api.service_routes import router as service_router
 from src.api.mention_routes import router as mention_router
 from src.api.changes_routes import router as changes_router
+from src.services.health_checker import health_checker
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    create_db_and_tables()
+    await health_checker.start()
+    yield
+    # Shutdown
+    await health_checker.stop()
 
 app = FastAPI(
     title="Headless PM API",
@@ -19,7 +31,8 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
-    openapi_url="/api/v1/openapi.json"
+    openapi_url="/api/v1/openapi.json",
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -38,9 +51,6 @@ app.include_router(service_router)
 app.include_router(mention_router)
 app.include_router(changes_router)
 
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
 
 @app.get("/", tags=["Root"])
 def read_root():

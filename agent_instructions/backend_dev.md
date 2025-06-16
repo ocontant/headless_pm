@@ -89,9 +89,10 @@ As a backend developer, you work with these status transitions:
 ## Service Management
 When you start a service:
 ```json
-POST http://localhost:6969/api/v1/services/register
+POST http://localhost:6969/api/v1/services/register?agent_id=your_agent_id
 {
   "service_name": "api",
+  "ping_url": "http://localhost:8000/health",
   "port": 8000,
   "status": "up",
   "meta_data": {
@@ -102,14 +103,15 @@ POST http://localhost:6969/api/v1/services/register
 }
 ```
 
-Send heartbeats every 30 seconds:
-```
-POST http://localhost:6969/api/v1/services/api/heartbeat?agent_id=your_agent_id
-```
+**Important**: The `ping_url` field is required. This should be a health check endpoint that returns 200 OK when your service is running properly. The system will automatically ping this URL every 30 seconds to monitor service health.
+
+No need to send manual heartbeats - the system handles health monitoring automatically!
 
 ## Communication
 
 **Best Practice**: Always provide comprehensive details in documents and comments. Include technical context, error messages, stack traces, configuration details, and clear reproduction steps. This helps team members understand and resolve issues faster.
+
+**Tip**: Use single quotes around JSON in curl commands to avoid escaping issues. See /docs/JSON_ESCAPING_GUIDE.md for details.
 
 - Use @mentions to notify frontend developers about API changes
 - Post service status updates: `doc_type: "service_status"`

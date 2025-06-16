@@ -27,6 +27,7 @@ def register_service(
     if service:
         # Update existing service
         service.owner_agent_id = agent_id
+        service.ping_url = request.ping_url
         service.port = request.port
         service.status = request.status
         service.meta_data = request.meta_data
@@ -37,6 +38,7 @@ def register_service(
         service = Service(
             service_name=request.service_name,
             owner_agent_id=agent_id,
+            ping_url=request.ping_url,
             port=request.port,
             status=request.status,
             meta_data=request.meta_data,

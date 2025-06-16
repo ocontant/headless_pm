@@ -85,6 +85,8 @@ As a QA engineer, you work with these specific transitions:
 
 **Critical**: Always provide exhaustive details in bug reports. Include environment details, exact reproduction steps, test data, screenshots, and any relevant logs. The more comprehensive your report, the faster developers can fix the issue.
 
+**Tip**: Use single quotes around JSON in curl commands to avoid escaping issues. See /docs/JSON_ESCAPING_GUIDE.md for details.
+
 When you find issues, create a critical_issue document:
 ```json
 POST /api/v1/documents?author_id=your_agent_id
@@ -104,9 +106,10 @@ POST /api/v1/documents?author_id=your_agent_id
 ## Test Environment Management
 Register and monitor test services:
 ```json
-POST /api/v1/services/register
+POST /api/v1/services/register?agent_id=your_agent_id
 {
   "service_name": "test-runner",
+  "ping_url": "http://localhost:4000/health",
   "port": 4000,
   "status": "up",
   "meta_data": {
