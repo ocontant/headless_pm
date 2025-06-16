@@ -6,13 +6,13 @@ import os
 
 from src.models.database import get_session
 from src.api.dependencies import get_db
-from src.models.models import Agent, Task, Epic, Feature, TaskEvaluation, Changelog
+from src.models.models import Agent, Task, Epic, Feature, Changelog
 from src.models.enums import TaskStatus, AgentRole, DifficultyLevel
 from src.api.schemas import (
     AgentRegisterRequest, AgentResponse,
     EpicCreateRequest, FeatureCreateRequest,
     TaskCreateRequest, TaskResponse, TaskStatusUpdateRequest,
-    TaskEvaluationRequest, TaskCommentRequest,
+    TaskCommentRequest,
     ProjectContextResponse, EpicResponse, FeatureResponse,
     ChangelogResponse
 )
@@ -358,75 +358,6 @@ def update_task_status(task_id: int, request: TaskStatusUpdateRequest,
         updated_at=task.updated_at
     )
 
-@router.post("/tasks/{task_id}/evaluate", response_model=TaskResponse,
-    summary="Evaluate a task",
-    description="Approve or reject a task (architect/PM only)")
-def evaluate_task(task_id: int, request: TaskEvaluationRequest,
-                 agent_id: str, db: Session = Depends(get_session)):
-    # Get task
-    task = db.get(Task, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail=f"Task with ID {task_id} not found. Please verify the task ID exists.")
-    
-    # Get agent
-    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found. Please ensure the agent is registered using POST /api/v1/register before attempting this operation.")
-    
-    # Verify agent is architect or PM
-    if agent.role not in [AgentRole.ARCHITECT, AgentRole.PM]:
-        raise HTTPException(status_code=403, detail="Only architects and PMs can evaluate tasks")
-    
-    # Create evaluation
-    evaluation = TaskEvaluation(
-        task_id=task.id,
-        evaluated_by=agent_id,
-        approved=request.approved,
-        comment=request.comment
-    )
-    db.add(evaluation)
-    
-    # Update task status
-    old_status = task.status
-    if request.approved:
-        task.status = TaskStatus.APPROVED
-    else:
-        task.status = TaskStatus.CREATED
-        task.notes = f"Rejected: {request.comment}" if request.comment else "Rejected"
-    
-    task.updated_at = datetime.utcnow()
-    db.add(task)
-    
-    # Create changelog
-    changelog = Changelog(
-        task_id=task.id,
-        old_status=old_status,
-        new_status=task.status,
-        changed_by=agent_id,
-        notes=f"{'Approved' if request.approved else 'Rejected'}: {request.comment}" if request.comment else None
-    )
-    db.add(changelog)
-    
-    db.commit()
-    db.refresh(task)
-    
-    return TaskResponse(
-        id=task.id,
-        feature_id=task.feature_id,
-        title=task.title,
-        description=task.description,
-        created_by=task.creator.agent_id,
-        target_role=task.target_role,
-        difficulty=task.difficulty,
-        complexity=task.complexity,
-        branch=task.branch,
-        status=task.status,
-        locked_by=task.locked_by_agent.agent_id if task.locked_by_agent else None,
-        locked_at=task.locked_at,
-        notes=task.notes,
-        created_at=task.created_at,
-        updated_at=task.updated_at
-    )
 
 @router.post("/tasks/{task_id}/comment",
     summary="Add comment to task",

@@ -129,9 +129,18 @@ class HeadlessPMDashboard:
         table = Table(title="Active Agents", box=box.MINIMAL)
         table.add_column("Agent", style="cyan")
         table.add_column("Role", style="green")  
+        table.add_column("Open Tasks", justify="center", style="magenta")
         table.add_column("Last Seen", style="yellow")
         
         for agent in agents[:6]:  # Show top 6 most recent
+            # Count open tasks for this agent
+            open_tasks_count = len(db.exec(
+                select(Task).where(
+                    Task.locked_by_agent_id == agent.id,
+                    Task.status != TaskStatus.COMMITTED
+                )
+            ).all())
+            
             last_seen = agent.last_seen
             if last_seen:
                 time_diff = datetime.utcnow() - last_seen
@@ -150,7 +159,7 @@ class HeadlessPMDashboard:
             agent_display = agent.agent_id.replace('_', ' ').title()
             role_display = agent.role.value.replace('_', ' ').title()
             
-            table.add_row(agent_display, role_display, f"{status} {time_str}")
+            table.add_row(agent_display, role_display, str(open_tasks_count), f"{status} {time_str}")
         
         return Panel(table, title="Agent Status", border_style="cyan")
 

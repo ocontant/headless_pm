@@ -32,9 +32,6 @@ class TaskStatusUpdateRequest(BaseModel):
     status: TaskStatus = Field(..., description="New status for the task")
     notes: Optional[str] = Field(None, description="Optional notes about the status change")
 
-class TaskEvaluationRequest(BaseModel):
-    approved: bool = Field(..., description="Whether the task is approved")
-    comment: Optional[str] = Field(None, description="Evaluation comment")
 
 class TaskCommentRequest(BaseModel):
     comment: str = Field(..., description="Comment to add to the task")

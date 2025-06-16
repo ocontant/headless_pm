@@ -268,43 +268,6 @@ def test_get_next_task(client: TestClient, sample_api_data):
     assert data["title"] == "Test Task for Architect"
     assert data["status"] == "created"
 
-def test_evaluate_task(client: TestClient, sample_api_data):
-    """Test task evaluation"""
-    feature = sample_api_data["feature"]
-    
-    # Create a task
-    response = client.post(
-        "/api/v1/tasks/create",
-        headers={"X-API-Key": "development-key"},
-        params={"agent_id": "architect_test_001"},
-        json={
-            "feature_id": feature.id,
-            "title": "Task to Evaluate",
-            "description": "Test task description",
-            "target_role": "frontend_dev",
-            "difficulty": "senior",
-            "complexity": "major",
-            "branch": "feature/test-evaluation"
-        }
-    )
-    
-    task_data = response.json()
-    task_id = task_data["id"]
-    
-    # Evaluate the task
-    response = client.post(
-        f"/api/v1/tasks/{task_id}/evaluate",
-        headers={"X-API-Key": "development-key"},
-        params={"agent_id": "architect_test_001"},
-        json={
-            "approved": True,
-            "comment": "Looks good, approved for implementation"
-        }
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "approved"
 
 def test_lock_task(client: TestClient, sample_api_data):
     """Test task locking"""
