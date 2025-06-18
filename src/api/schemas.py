@@ -1,8 +1,11 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from datetime import datetime
 from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType
 from src.models.document_enums import DocumentType, ServiceStatus
+
+if TYPE_CHECKING:
+    from typing import ForwardRef
 
 # Request schemas
 class AgentRegisterRequest(BaseModel):
@@ -51,8 +54,8 @@ class AgentResponse(BaseModel):
 
 class AgentRegistrationResponse(BaseModel):
     agent: AgentResponse
-    next_task: Optional[TaskResponse] = None
-    mentions: List[MentionResponse] = []
+    next_task: Optional["TaskResponse"] = None
+    mentions: List["MentionResponse"] = []
     
     class Config:
         from_attributes = True
@@ -185,3 +188,6 @@ class MentionResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+# Rebuild models to resolve forward references
+AgentRegistrationResponse.model_rebuild()
