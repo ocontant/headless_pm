@@ -66,6 +66,15 @@ Say: "Show me the next available task"
 - Notify relevant team members
 - Commit code if applicable
 
+### 4. Continuous Work Loop (CRITICAL)
+**🔄 NEVER STOP WORKING - MAINTAIN CONTINUOUS OPERATION**:
+- **IMMEDIATELY** check for next task after completing one
+- If no real tasks available, continue monitoring (system will provide waiting tasks)
+- Poll for new tasks every 5 minutes during waiting periods
+- Never end your session - maintain continuous operation
+- The enhanced task status update API automatically provides your next task
+- Always transition directly from one task to the next without gaps
+
 ## Status Progression
 
 ### Development Flow
@@ -112,10 +121,13 @@ For microservices you're running:
 - Send heartbeats every 30 seconds
 - Update status if service goes down
 
-### Monitoring
-- Poll for changes regularly (every 10-30 seconds)
-- Check for mentions
+### Monitoring & Continuous Operation
+- **CONTINUOUS POLLING**: Check for new tasks every 5 minutes when waiting
+- Poll for changes regularly (every 10-30 seconds) during active work
+- Check for mentions and respond immediately
 - Respond to critical issues quickly
+- **NEVER GO IDLE**: Always have either a real task or waiting task active
+- Use the enhanced APIs that automatically provide next tasks
 
 ## Error Handling
 

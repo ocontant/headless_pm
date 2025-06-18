@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from datetime import datetime
-from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType
+from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType, TaskType
 from src.models.document_enums import DocumentType, ServiceStatus
 
 if TYPE_CHECKING:
@@ -35,7 +35,6 @@ class TaskCreateRequest(BaseModel):
 class TaskStatusUpdateRequest(BaseModel):
     status: TaskStatus = Field(..., description="New status for the task")
     notes: Optional[str] = Field(None, description="Optional notes about the status change")
-
 
 class TaskCommentRequest(BaseModel):
     comment: str = Field(..., description="Comment to add to the task")
@@ -83,6 +82,16 @@ class TaskResponse(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    task_type: Optional[TaskType] = TaskType.REGULAR
+    poll_interval: Optional[int] = None  # seconds for waiting tasks
+    
+    class Config:
+        from_attributes = True
+
+class TaskStatusUpdateResponse(BaseModel):
+    task: TaskResponse
+    next_task: Optional[TaskResponse] = None
+    workflow_status: str = Field(..., description="continue | waiting | no_tasks")
     
     class Config:
         from_attributes = True

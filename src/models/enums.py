@@ -30,3 +30,7 @@ class TaskComplexity(str, Enum):
 class ConnectionType(str, Enum):
     MCP = "mcp"      # Model Context Protocol
     CLIENT = "client"  # Direct API client
+
+class TaskType(str, Enum):
+    REGULAR = "regular"   # Normal development task
+    WAITING = "waiting"   # Synthetic waiting task for polling
