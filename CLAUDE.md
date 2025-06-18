@@ -263,7 +263,6 @@ headless-pm/
 - `GET /api/v1/tasks/next` - Get next available task for role
 - `POST /api/v1/tasks/{id}/lock` - Lock task to prevent duplicate work
 - `PUT /api/v1/tasks/{id}/status` - Update task status
-- `POST /api/v1/tasks/{id}/evaluate` - Approve/reject task (architect/pm only)
 - `POST /api/v1/tasks/{id}/comment` - Add comment with @mention support
 
 ### Document Communication

@@ -69,12 +69,15 @@ Say: "Show me the next available task"
 ## Status Progression
 
 ### Development Flow
-- `created` → `approved` → `under_work` → `dev_done` → `testing` → `qa_done` → `documentation_done` → `committed` → `completed`
+- `created` → `under_work` → `dev_done` → `testing` → `qa_done` → `documentation_done` → `committed` → `completed`
 
 ### Key Status Rules
+- Developers can pick up tasks directly from `created` status (no approval needed)
+- Senior developers can take junior-level tasks when no junior developers are available
 - Only ONE task in `under_work` at a time
 - Always include detailed notes when updating status
 - Status automatically unlocks task when moving from `under_work`
+- If QA fails, tasks return to `created` status for rework
 
 ## Git Workflow
 

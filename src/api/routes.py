@@ -6,15 +6,15 @@ import os
 
 from src.models.database import get_session
 from src.api.dependencies import get_db
-from src.models.models import Agent, Task, Epic, Feature, Changelog
+from src.models.models import Agent, Task, Epic, Feature, Changelog, Mention, Document
 from src.models.enums import TaskStatus, AgentRole, DifficultyLevel
 from src.api.schemas import (
-    AgentRegisterRequest, AgentResponse,
+    AgentRegisterRequest, AgentResponse, AgentRegistrationResponse,
     EpicCreateRequest, FeatureCreateRequest,
     TaskCreateRequest, TaskResponse, TaskStatusUpdateRequest,
     TaskCommentRequest,
     ProjectContextResponse, EpicResponse, FeatureResponse,
-    ChangelogResponse
+    ChangelogResponse, MentionResponse
 )
 from src.api.dependencies import verify_api_key
 from src.services.mention_service import create_mentions_for_task
@@ -23,9 +23,9 @@ from pathlib import Path
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 
-@router.post("/register", response_model=AgentResponse, 
+@router.post("/register", response_model=AgentRegistrationResponse, 
     summary="Register an agent",
-    description="Register a new agent or update existing agent's last seen timestamp")
+    description="Register a new agent or update existing agent's last seen timestamp. Returns agent info, next available task, and any unread mentions.")
 def register_agent(request: AgentRegisterRequest, db: Session = Depends(get_session)):
     # Check if agent exists
     agent = db.exec(select(Agent).where(Agent.agent_id == request.agent_id)).first()
@@ -46,7 +46,130 @@ def register_agent(request: AgentRegisterRequest, db: Session = Depends(get_sess
     
     db.commit()
     db.refresh(agent)
-    return agent
+    
+    # Get next available task for this agent
+    next_task = None
+    
+    # Determine which statuses to look for based on role
+    if agent.role == AgentRole.QA:
+        # QA tests dev_done tasks
+        query = select(Task).where(
+            Task.status == TaskStatus.DEV_DONE,
+            Task.locked_by_id.is_(None)
+        )
+    else:
+        # Developers (including PM/Architect) work on created tasks
+        # Check if there are available agents at lower skill levels for this role
+        from datetime import timedelta
+        cutoff_time = datetime.utcnow() - timedelta(minutes=30)  # Consider agent active if seen in last 30 min
+        
+        # Get active agents for this role at different skill levels
+        active_agents = db.exec(
+            select(Agent).where(
+                Agent.role == agent.role,
+                Agent.last_seen > cutoff_time
+            )
+        ).all()
+        
+        # Determine available skill levels
+        active_skill_levels = {ag.level for ag in active_agents}
+        
+        # Define skill hierarchy
+        skill_hierarchy = [DifficultyLevel.JUNIOR, DifficultyLevel.SENIOR, DifficultyLevel.PRINCIPAL]
+        current_skill_index = skill_hierarchy.index(agent.level)
+        
+        # Determine which difficulties this agent can work on
+        allowed_difficulties = []
+        for i, skill in enumerate(skill_hierarchy):
+            if i <= current_skill_index:  # Can always do tasks at or below their level
+                allowed_difficulties.append(skill)
+            elif skill not in active_skill_levels:  # Can do higher-level tasks if no one else available
+                continue
+        
+        # For architects and PMs, also include legacy APPROVED status for backward compatibility
+        if agent.role in [AgentRole.ARCHITECT, AgentRole.PM]:
+            query = select(Task).where(
+                (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
+                Task.target_role == agent.role,
+                Task.difficulty.in_(allowed_difficulties),
+                Task.locked_by_id.is_(None)
+            )
+        else:
+            query = select(Task).where(
+                (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
+                Task.target_role == agent.role,
+                Task.difficulty.in_(allowed_difficulties),
+                Task.locked_by_id.is_(None)
+            )
+    
+    # Get oldest unlocked task
+    task = db.exec(query.order_by(Task.created_at)).first()
+    
+    if task:
+        next_task = TaskResponse(
+            id=task.id,
+            feature_id=task.feature_id,
+            title=task.title,
+            description=task.description,
+            created_by=task.creator.agent_id,
+            target_role=task.target_role,
+            difficulty=task.difficulty,
+            complexity=task.complexity,
+            branch=task.branch,
+            status=task.status,
+            locked_by=None,
+            locked_at=None,
+            notes=task.notes,
+            created_at=task.created_at,
+            updated_at=task.updated_at
+        )
+    
+    # Get unread mentions for this agent
+    mention_query = select(Mention).where(
+        Mention.mentioned_agent_id == agent.agent_id,
+        Mention.is_read == False
+    ).order_by(Mention.created_at.desc()).limit(10)
+    mentions_data = db.exec(mention_query).all()
+    
+    # Build mention responses with document/task titles
+    mentions = []
+    for mention in mentions_data:
+        response = MentionResponse(
+            id=mention.id,
+            document_id=mention.document_id,
+            task_id=mention.task_id,
+            mentioned_agent_id=mention.mentioned_agent_id,
+            created_by=mention.created_by,
+            is_read=mention.is_read,
+            created_at=mention.created_at
+        )
+        
+        # Add document title if it's a document mention
+        if mention.document_id:
+            document = db.get(Document, mention.document_id)
+            if document:
+                response.document_title = document.title
+        
+        # Add task title if it's a task mention
+        if mention.task_id:
+            task_obj = db.get(Task, mention.task_id)
+            if task_obj:
+                response.task_title = task_obj.title
+        
+        mentions.append(response)
+    
+    return AgentRegistrationResponse(
+        agent=AgentResponse(
+            id=agent.id,
+            agent_id=agent.agent_id,
+            role=agent.role,
+            level=agent.level,
+            connection_type=agent.connection_type,
+            last_seen=agent.last_seen
+        ),
+        next_task=next_task,
+        mentions=mentions
+    )
 
 @router.get("/agents", response_model=List[AgentResponse],
     summary="List all agents", 
@@ -202,34 +325,57 @@ def get_next_task(role: AgentRole = None, level: DifficultyLevel = None,
         )
     
     # Determine which statuses to look for based on role
-    if role in [AgentRole.ARCHITECT, AgentRole.PM]:
-        # Architects and PMs evaluate created tasks
-        query = select(Task).where(
-            Task.status == TaskStatus.CREATED,
-            Task.locked_by_id.is_(None)
-        )
-    elif role == AgentRole.QA:
+    if role == AgentRole.QA:
         # QA tests dev_done tasks
         query = select(Task).where(
             Task.status == TaskStatus.DEV_DONE,
             Task.locked_by_id.is_(None)
         )
     else:
-        # Developers work on approved tasks
-        # Get tasks at or below their skill level
-        difficulty_order = {
-            DifficultyLevel.JUNIOR: [DifficultyLevel.JUNIOR],
-            DifficultyLevel.SENIOR: [DifficultyLevel.JUNIOR, DifficultyLevel.SENIOR],
-            DifficultyLevel.PRINCIPAL: [DifficultyLevel.JUNIOR, DifficultyLevel.SENIOR, DifficultyLevel.PRINCIPAL]
-        }
-        allowed_difficulties = difficulty_order.get(level, [level])
+        # Developers (including PM/Architect) work on created tasks
+        # Check if there are available agents at lower skill levels for this role
+        from datetime import timedelta
+        cutoff_time = datetime.utcnow() - timedelta(minutes=30)  # Consider agent active if seen in last 30 min
         
-        query = select(Task).where(
-            Task.status == TaskStatus.APPROVED,
-            Task.target_role == role,
-            Task.difficulty.in_(allowed_difficulties),
-            Task.locked_by_id.is_(None)
-        )
+        # Get active agents for this role at different skill levels
+        active_agents = db.exec(
+            select(Agent).where(
+                Agent.role == role,
+                Agent.last_seen > cutoff_time
+            )
+        ).all()
+        
+        # Determine available skill levels
+        active_skill_levels = {agent.level for agent in active_agents}
+        
+        # Define skill hierarchy
+        skill_hierarchy = [DifficultyLevel.JUNIOR, DifficultyLevel.SENIOR, DifficultyLevel.PRINCIPAL]
+        current_skill_index = skill_hierarchy.index(level)
+        
+        # Determine which difficulties this agent can work on
+        # If no lower-skilled agents are online, allow higher-skilled agents to take lower-level tasks
+        allowed_difficulties = []
+        for i, skill in enumerate(skill_hierarchy):
+            if i <= current_skill_index:  # Can always do tasks at or below their level
+                allowed_difficulties.append(skill)
+            elif skill not in active_skill_levels:  # Can do higher-level tasks if no one else available
+                continue
+        
+        # For architects and PMs, also include legacy APPROVED status for backward compatibility
+        if role in [AgentRole.ARCHITECT, AgentRole.PM]:
+            query = select(Task).where(
+                (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
+                Task.target_role == role,
+                Task.difficulty.in_(allowed_difficulties),
+                Task.locked_by_id.is_(None)
+            )
+        else:
+            query = select(Task).where(
+                (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
+                Task.target_role == role,
+                Task.difficulty.in_(allowed_difficulties),
+                Task.locked_by_id.is_(None)
+            )
     
     # Get oldest unlocked task
     task = db.exec(query.order_by(Task.created_at)).first()

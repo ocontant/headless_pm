@@ -49,6 +49,14 @@ class AgentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class AgentRegistrationResponse(BaseModel):
+    agent: AgentResponse
+    next_task: Optional[TaskResponse] = None
+    mentions: List[MentionResponse] = []
+    
+    class Config:
+        from_attributes = True
+
 class ProjectContextResponse(BaseModel):
     project_name: str
     shared_path: str

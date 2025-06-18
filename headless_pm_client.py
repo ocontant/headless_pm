@@ -313,7 +313,7 @@ def validate_args(args, parser):
         if not hasattr(args, 'status') or not args.status:
             print("Error: tasks status requires --status argument")
             print("Example: python3 headless_pm_client.py tasks status 123 --status dev_done --agent-id 'backend_dev_001'")
-            print("\nAvailable statuses: created, evaluation, approved, under_work, dev_done, qa_done, documentation_done, committed")
+            print("\nAvailable statuses: created, under_work, dev_done, qa_done, documentation_done, committed")
             sys.exit(1)
 
 def main():
@@ -331,6 +331,7 @@ All agents should follow these common instructions.
 
 ### Register yourself (CRITICAL)
 - Register yourself based on your agent role: `python3 headless_pm_client.py register --agent-id "YOUR_AGENT_ID" --role YOUR_ROLE --level YOUR_LEVEL`
+- Registration automatically returns your next available task and any unread mentions
 - Register any services you manage (refer to service_responsibilities.md)
 
 ### Progress Reporting (CRITICAL)
@@ -377,7 +378,7 @@ All agents should follow these common instructions.
 ## Status Progression
 
 ### Development Flow
-- `created` → `approved` → `under_work` → `dev_done` → `testing` → `qa_done` → `documentation_done` → `committed` → `completed`
+- `created` → `under_work` → `dev_done` → `qa_done` → `documentation_done` → `committed`
 
 ### Key Status Rules
 - Only ONE task in `under_work` at a time
@@ -458,6 +459,7 @@ QUICK START - COMMON COMMANDS WITH EXAMPLES
 
 🚀 GETTING STARTED:
   python3 headless_pm_client.py register --agent-id "backend_dev_001" --role backend_dev --level senior
+  # Registration returns your agent info, next available task, and unread mentions
   python3 headless_pm_client.py context
 
 📋 WORKING WITH TASKS:
@@ -493,7 +495,7 @@ COMPLETE COMMAND REFERENCE
 ================================================================================
 
 AGENT MANAGEMENT:
-  register              - Register an agent with role and skill level
+  register              - Register an agent with role and skill level (returns agent info, next task, and mentions)
   agents list           - List all registered agents  
   agents delete         - Delete an agent (PM only)
   context               - Get project context and configuration
@@ -561,7 +563,8 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
     # Register agent
-    register_parser = subparsers.add_parser("register", help="Register an agent")
+    register_parser = subparsers.add_parser("register", 
+                                           help="Register an agent (returns agent info, next task, and mentions)")
     register_parser.add_argument("--agent-id", required=True, help="Unique agent identifier")
     register_parser.add_argument("--role", required=True, 
                                choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"])
@@ -653,7 +656,7 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
                                      epilog="Example: python3 headless_pm_client.py tasks status 123 --status dev_done --agent-id 'backend_dev_001' --notes 'Implementation complete'")
     task_status.add_argument("task_id", type=int, help="Task ID")
     task_status.add_argument("--status", required=True, 
-                           choices=["created", "evaluation", "approved", "under_work", "dev_done", 
+                           choices=["created", "under_work", "dev_done", 
                                    "qa_done", "documentation_done", "committed"],
                            help="New task status (REQUIRED)")
     task_status.add_argument("--agent-id", required=True, help="Your agent ID (REQUIRED)")
