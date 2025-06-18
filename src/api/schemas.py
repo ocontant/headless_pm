@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity
+from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType
 from src.models.document_enums import DocumentType, ServiceStatus
 
 # Request schemas
@@ -9,6 +9,7 @@ class AgentRegisterRequest(BaseModel):
     agent_id: str = Field(..., description="Unique agent identifier (e.g., 'frontend_dev_senior_001')")
     role: AgentRole = Field(..., description="Agent's role in the project")
     level: DifficultyLevel = Field(..., description="Agent's skill level")
+    connection_type: Optional[ConnectionType] = Field(ConnectionType.CLIENT, description="Connection type (MCP or Client)")
 
 class EpicCreateRequest(BaseModel):
     name: str = Field(..., description="Epic name")
@@ -42,6 +43,7 @@ class AgentResponse(BaseModel):
     agent_id: str
     role: AgentRole
     level: DifficultyLevel
+    connection_type: Optional[ConnectionType]
     last_seen: datetime
     
     class Config:
@@ -142,7 +144,7 @@ class ServiceRegisterRequest(BaseModel):
     service_name: str = Field(..., description="Unique service name", max_length=100)
     ping_url: str = Field(..., description="URL to ping for health check (e.g., http://localhost:8080/health)")
     port: Optional[int] = Field(None, description="Port number if applicable")
-    status: ServiceStatus = Field(ServiceStatus.UP, description="Service status")
+    status: ServiceStatus = Field("up", description="Service status")
     meta_data: Optional[Dict[str, Any]] = Field(None, description="Additional service meta_data")
 
 class ServiceResponse(BaseModel):

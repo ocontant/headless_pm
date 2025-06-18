@@ -16,7 +16,7 @@ def get_database_url():
     
     # Try to load from .env file
     try:
-        with open('.env', 'r') as f:
+        with open('../.env', 'r') as f:
             env_vars = {}
             for line in f:
                 line = line.strip()

@@ -2,7 +2,7 @@ from sqlmodel import SQLModel, Field, Relationship, JSON, Column
 from sqlalchemy import Text
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from .enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity
+from .enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType
 from .document_enums import DocumentType, ServiceStatus
 
 class Agent(SQLModel, table=True):
@@ -10,6 +10,7 @@ class Agent(SQLModel, table=True):
     agent_id: str = Field(index=True, unique=True)  # e.g., "frontend_dev_senior_001"
     role: AgentRole
     level: DifficultyLevel
+    connection_type: Optional[ConnectionType] = Field(default=ConnectionType.CLIENT)  # MCP or Client
     last_seen: datetime = Field(default_factory=datetime.utcnow)
     
     tasks_created: List["Task"] = Relationship(back_populates="creator", sa_relationship_kwargs={"foreign_keys": "[Task.created_by_id]"})
@@ -21,7 +22,7 @@ class Epic(SQLModel, table=True):
     description: str = Field(sa_column=Column(Text))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    features: List["Feature"] = Relationship(back_populates="epic")
+    features: List["Feature"] = Relationship(back_populates="epic", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class Feature(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -30,7 +31,7 @@ class Feature(SQLModel, table=True):
     description: str = Field(sa_column=Column(Text))
     
     epic: Epic = Relationship(back_populates="features")
-    tasks: List["Task"] = Relationship(back_populates="feature")
+    tasks: List["Task"] = Relationship(back_populates="feature", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class Task(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -52,9 +53,9 @@ class Task(SQLModel, table=True):
     feature: Feature = Relationship(back_populates="tasks")
     creator: Agent = Relationship(back_populates="tasks_created", sa_relationship_kwargs={"foreign_keys": "[Task.created_by_id]"})
     locked_by_agent: Optional[Agent] = Relationship(back_populates="tasks_locked", sa_relationship_kwargs={"foreign_keys": "[Task.locked_by_id]"})
-    evaluations: List["TaskEvaluation"] = Relationship(back_populates="task")
-    changelogs: List["Changelog"] = Relationship(back_populates="task")
-    mentions: List["Mention"] = Relationship(back_populates="task")
+    evaluations: List["TaskEvaluation"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    changelogs: List["Changelog"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    mentions: List["Mention"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class TaskEvaluation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -88,7 +89,7 @@ class Document(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: Optional[datetime] = None  # For auto-cleanup
     
-    mentions: List["Mention"] = Relationship(back_populates="document")
+    mentions: List["Mention"] = Relationship(back_populates="document", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class Service(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

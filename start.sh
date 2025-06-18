@@ -171,6 +171,7 @@ fi
 
 # Check port availability
 PORT=${SERVICE_PORT:-6969}
+MCP_PORT=${MCP_PORT:-6968}
 log_info "Checking if port $PORT is available..."
 if lsof -i :$PORT >/dev/null 2>&1; then
     log_warning "Port $PORT is already in use"
@@ -179,16 +180,52 @@ else
     log_success "Port $PORT is available"
 fi
 
-# Start the server
-log_info "All checks passed! Starting Headless PM API server on port $PORT..."
+log_info "Checking if MCP port $MCP_PORT is available..."
+if lsof -i :$MCP_PORT >/dev/null 2>&1; then
+    log_warning "MCP port $MCP_PORT is already in use"
+    log_info "You may want to stop the existing service or use a different port"
+else
+    log_success "MCP port $MCP_PORT is available"
+fi
+
+# Function to start MCP server in background
+start_mcp_server() {
+    log_info "Starting MCP SSE server on port $MCP_PORT..."
+    uvicorn src.mcp.simple_sse_server:app --port $MCP_PORT --host 0.0.0.0 2>&1 | sed 's/^/[MCP] /' &
+    MCP_PID=$!
+    log_success "MCP SSE server started on port $MCP_PORT (PID: $MCP_PID)"
+}
+
+# Function to cleanup on exit
+cleanup() {
+    log_info "Shutting down..."
+    if [ ! -z "$MCP_PID" ]; then
+        kill $MCP_PID 2>/dev/null || true
+        log_info "MCP server stopped"
+    fi
+    exit 0
+}
+
+# Set up trap for cleanup
+trap cleanup INT TERM
+
+# Start the servers
+log_info "All checks passed! Starting Headless PM servers..."
 echo -e "${GREEN}"
-echo "🌟 Server starting up..."
+echo "🌟 Starting services..."
 echo "📚 API Documentation: http://localhost:$PORT/api/v1/docs"
+echo "🔌 MCP HTTP Server: http://localhost:$MCP_PORT"
 echo "📊 CLI Dashboard: python -m src.cli.main dashboard"
-echo "🛑 Stop server: Ctrl+C"
+echo "🛑 Stop servers: Ctrl+C"
 echo -e "${NC}"
 
-log_info "Executing: uvicorn src.main:app --reload --port $PORT --host 0.0.0.0"
+# Start MCP server in background
+start_mcp_server
 
-# Start uvicorn with proper error handling
-exec uvicorn src.main:app --reload --port $PORT --host 0.0.0.0
+# Start API server in foreground
+log_info "Starting API server on port $PORT..."
+uvicorn src.main:app --reload --port $PORT --host 0.0.0.0 &
+API_PID=$!
+
+# Wait for API server process
+wait $API_PID

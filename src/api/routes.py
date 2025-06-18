@@ -18,6 +18,8 @@ from src.api.schemas import (
 )
 from src.api.dependencies import verify_api_key
 from src.services.mention_service import create_mentions_for_task
+import json
+from pathlib import Path
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 
@@ -29,14 +31,16 @@ def register_agent(request: AgentRegisterRequest, db: Session = Depends(get_sess
     agent = db.exec(select(Agent).where(Agent.agent_id == request.agent_id)).first()
     
     if agent:
-        # Update last seen
+        # Update last seen and connection type
         agent.last_seen = datetime.utcnow()
+        agent.connection_type = request.connection_type
     else:
         # Create new agent
         agent = Agent(
             agent_id=request.agent_id,
             role=request.role,
-            level=request.level
+            level=request.level,
+            connection_type=request.connection_type
         )
         db.add(agent)
     
@@ -430,3 +434,81 @@ def get_changelog(limit: int = 50, db: Session = Depends(get_session)):
         .limit(limit)
     ).all()
     return changelogs
+
+
+# Delete endpoints (PM only)
+@router.delete("/epics/{epic_id}",
+    summary="Delete an epic (PM only)",
+    description="Delete an epic and all its features and tasks. Only PM agents can perform this action.")
+def delete_epic(epic_id: int, agent_id: str, db: Session = Depends(get_session)):
+    # Verify agent is PM
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent or agent.role != AgentRole.PM:
+        raise HTTPException(status_code=403, detail="Only PM agents can delete epics")
+    
+    epic = db.exec(select(Epic).where(Epic.id == epic_id)).first()
+    if not epic:
+        raise HTTPException(status_code=404, detail="Epic not found")
+    
+    db.delete(epic)
+    db.commit()
+    return {"message": f"Epic {epic_id} deleted successfully"}
+
+
+@router.delete("/features/{feature_id}",
+    summary="Delete a feature (PM only)",
+    description="Delete a feature and all its tasks. Only PM agents can perform this action.")
+def delete_feature(feature_id: int, agent_id: str, db: Session = Depends(get_session)):
+    # Verify agent is PM
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent or agent.role != AgentRole.PM:
+        raise HTTPException(status_code=403, detail="Only PM agents can delete features")
+    
+    feature = db.exec(select(Feature).where(Feature.id == feature_id)).first()
+    if not feature:
+        raise HTTPException(status_code=404, detail="Feature not found")
+    
+    db.delete(feature)
+    db.commit()
+    return {"message": f"Feature {feature_id} deleted successfully"}
+
+
+@router.delete("/tasks/{task_id}",
+    summary="Delete a task (PM only)",
+    description="Delete a task. Only PM agents can perform this action.")
+def delete_task(task_id: int, agent_id: str, db: Session = Depends(get_session)):
+    # Verify agent is PM
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent or agent.role != AgentRole.PM:
+        raise HTTPException(status_code=403, detail="Only PM agents can delete tasks")
+    
+    task = db.exec(select(Task).where(Task.id == task_id)).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    db.delete(task)
+    db.commit()
+    return {"message": f"Task {task_id} deleted successfully"}
+
+
+@router.delete("/agents/{agent_id}",
+    summary="Delete an agent (PM only)",
+    description="Delete an agent record. Only PM agents can perform this action.")
+def delete_agent(agent_id: str, requester_agent_id: str, db: Session = Depends(get_session)):
+    # Verify requester is PM
+    requester = db.exec(select(Agent).where(Agent.agent_id == requester_agent_id)).first()
+    if not requester or requester.role != AgentRole.PM:
+        raise HTTPException(status_code=403, detail="Only PM agents can delete other agents")
+    
+    # Prevent PM from deleting themselves
+    if agent_id == requester_agent_id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own agent record")
+    
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    db.delete(agent)
+    db.commit()
+    return {"message": f"Agent {agent_id} deleted successfully"}
+

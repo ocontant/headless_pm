@@ -7,6 +7,8 @@ import time
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List
+import requests
+import json
 from sqlmodel import Session, select
 from rich.console import Console
 from rich.layout import Layout
@@ -41,8 +43,8 @@ class HeadlessPMDashboard:
         )
         
         self.layout["left"].split_column(
-            Layout(name="tasks", ratio=2),
-            Layout(name="agents", ratio=1)
+            Layout(name="tasks", ratio=1),
+            Layout(name="agents", ratio=2)
         )
         
         self.layout["right"].split_column(
@@ -129,10 +131,11 @@ class HeadlessPMDashboard:
         table = Table(title="Active Agents", box=box.MINIMAL)
         table.add_column("Agent", style="cyan")
         table.add_column("Role", style="green")  
+        table.add_column("Type", justify="center", style="blue")
         table.add_column("Open Tasks", justify="center", style="magenta")
         table.add_column("Last Seen", style="yellow")
         
-        for agent in agents[:6]:  # Show top 6 most recent
+        for agent in agents[:10]:  # Show top 10 most recent
             # Count open tasks for this agent
             open_tasks_count = len(db.exec(
                 select(Task).where(
@@ -158,8 +161,10 @@ class HeadlessPMDashboard:
             
             agent_display = agent.agent_id.replace('_', ' ').title()
             role_display = agent.role.value.replace('_', ' ').title()
+            connection_type = getattr(agent, 'connection_type', None)
+            type_display = connection_type.value.upper() if connection_type else "CLIENT"
             
-            table.add_row(agent_display, role_display, str(open_tasks_count), f"{status} {time_str}")
+            table.add_row(agent_display, role_display, type_display, str(open_tasks_count), f"{status} {time_str}")
         
         return Panel(table, title="Agent Status", border_style="cyan")
 
@@ -176,7 +181,7 @@ class HeadlessPMDashboard:
         table.add_column("Port", justify="right")
         table.add_column("Owner", style="yellow")
         
-        for service in services[:6]:  # Show top 6 services
+        for service in services[:8]:  # Show top 8 services
             status_icon = {
                 ServiceStatus.UP: "🟢",
                 ServiceStatus.DOWN: "🔴", 
@@ -208,6 +213,7 @@ class HeadlessPMDashboard:
             )
         
         return Panel(table, title="Service Registry", border_style="yellow")
+
 
     def render_activity(self) -> Panel:
         """Render the recent activity panel"""

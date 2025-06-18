@@ -25,3 +25,7 @@ class DifficultyLevel(str, Enum):
 class TaskComplexity(str, Enum):
     MINOR = "minor"  # Commit directly to main
     MAJOR = "major"  # Requires PR
+
+class ConnectionType(str, Enum):
+    MCP = "mcp"      # Model Context Protocol
+    CLIENT = "client"  # Direct API client
