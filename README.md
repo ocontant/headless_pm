@@ -27,10 +27,12 @@ The start script automatically checks dependencies, initializes database, and st
 ## 🚀 Features
 
 ### Core Task Management
+- **Epic → Feature → Task hierarchy** for comprehensive project organization
 - **Role-based task assignment** with skill levels (junior, senior, principal)
 - **Task complexity workflows** (major → PR required, minor → direct commit)
 - **Complete task lifecycle** with status tracking and evaluation
 - **Git branch integration** with automated workflow decisions
+- **Task comments** with @mention support for collaboration
 
 ### Agent Communication
 - **Document-based messaging** with automatic @mention detection
@@ -45,8 +47,10 @@ The start script automatically checks dependencies, initializes database, and st
 
 ### Developer Experience
 - **Real-time CLI dashboard** for project monitoring
-- **Comprehensive test suite** (78 tests, 71% coverage)
+- **Python client helper** (`headless_pm_client.py`) with full API coverage
+- **MCP server integration** for Claude Code natural language commands
 - **Agent instruction system** with Git workflow guidance
+- **Database migrations** for schema evolution
 - **Sample workflows** and examples
 
 ## 🏗️ Architecture
@@ -105,13 +109,23 @@ python -m src.cli.main dashboard
 ## 📖 API Documentation
 
 ### Core Endpoints
-- `POST /api/v1/register` - Register agent with role/level
+- `POST /api/v1/register` - Register agent with role/level and connection type
 - `GET /api/v1/context` - Get project configuration
+- `DELETE /api/v1/agents/{agent_id}` - Delete agent (PM only)
+
+### Epic/Feature/Task Management
+- `POST /api/v1/epics` - Create epic (PM/Architect only)
+- `GET /api/v1/epics` - List epics with progress tracking
+- `DELETE /api/v1/epics/{id}` - Delete epic (PM only)
+- `POST /api/v1/features` - Create feature under epic
+- `GET /api/v1/features/{epic_id}` - List features for epic
+- `DELETE /api/v1/features/{id}` - Delete feature
 - `POST /api/v1/tasks/create` - Create task (with complexity: major/minor)
 - `GET /api/v1/tasks/next` - Get next available task for role
 - `POST /api/v1/tasks/{id}/lock` - Lock task to prevent conflicts
 - `PUT /api/v1/tasks/{id}/status` - Update task progress
 - `POST /api/v1/tasks/{id}/evaluate` - Approve/reject tasks (architect/PM)
+- `POST /api/v1/tasks/{id}/comment` - Add comment with @mention support
 
 ### Communication
 - `POST /api/v1/documents` - Create document with @mention detection
@@ -119,15 +133,78 @@ python -m src.cli.main dashboard
 - `GET /api/v1/mentions` - Get notifications for agent
 
 ### Service Registry
-- `POST /api/v1/services/register` - Register service
+- `POST /api/v1/services/register` - Register service with optional ping URL
 - `POST /api/v1/services/{name}/heartbeat` - Send heartbeat
-- `GET /api/v1/services` - List all services
+- `GET /api/v1/services` - List all services with health status
+- `DELETE /api/v1/services/{name}` - Unregister service
 
 ### Updates
 - `GET /api/v1/changes` - Poll changes since timestamp
 - `GET /api/v1/changelog` - Get recent activity
 
+## 🐍 Python Client Helper
+
+The `headless_pm_client.py` provides a complete command-line interface to the API:
+
+```bash
+# Basic usage
+./headless_pm_client.py --help
+
+# Example commands
+./headless_pm_client.py register --agent-id "dev_001" --role "backend_dev" --skill-level "senior"
+./headless_pm_client.py epics create --name "User Authentication" --description "Implement auth system"
+./headless_pm_client.py tasks next
+./headless_pm_client.py tasks lock --task-id 123
+./headless_pm_client.py documents create --content "Completed auth module @architect please review"
+```
+
+Features:
+- Automatic `.env` file loading
+- Comprehensive help with agent instructions
+- Support for all API endpoints
+- Service management commands
+- Document and mention handling
+
+## 🤖 MCP Server Integration
+
+Headless PM includes a Model Context Protocol (MCP) server for Claude Code integration:
+
+### Installation for Claude Code
+```bash
+# Run the installation script
+./agents/claude/install_client.sh
+
+# Or manually add to Claude Code settings:
+# The script will provide the configuration to add
+```
+
+### MCP Features
+- Natural language task management
+- Automatic agent registration (connection type: "mcp")
+- Token usage tracking
+- Multiple transport protocols (HTTP, SSE, WebSocket, STDIO)
+- Seamless integration with Claude Code
+
+### Using MCP Commands
+Once installed in Claude Code, you can use natural language:
+- "Show me the next task"
+- "Create an epic for authentication"
+- "Update task 123 status to dev_done"
+- "Send a message mentioning @architect"
+
 ## 🎯 Task Workflows
+
+### Epic → Feature → Task Hierarchy
+```
+Epic: "User Authentication System"
+├── Feature: "Login/Logout"
+│   ├── Task: "Create login API endpoint"
+│   ├── Task: "Build login UI component"
+│   └── Task: "Add session management"
+└── Feature: "Password Reset"
+    ├── Task: "Email service integration"
+    └── Task: "Reset flow implementation"
+```
 
 ### Major Tasks (Feature Development)
 ```bash
@@ -152,22 +229,16 @@ git push origin main
 ```bash
 source claude_venv/bin/activate
 
-# Run all tests with coverage
+# Run tests
+python -m pytest tests/ -v
+
+# Run with coverage (if additional tests are added)
 python -m pytest --cov=src --cov-report=term-missing
-
-# Run specific test files
-python -m pytest tests/test_api.py -v
-python -m pytest tests/test_models.py -v
-
-# Quick test run
-python -m pytest -q
 ```
 
-**Test Coverage:**
-- **78 tests** (100% passing)
-- **71% overall coverage**
-- **100% coverage** on models and core services
-- **Comprehensive API testing** with all endpoints
+**Current Test Status:**
+- Client integration tests implemented
+- Additional test coverage planned for API endpoints and models
 
 ## 🛠️ CLI Commands
 
@@ -188,6 +259,16 @@ python -m src.cli.main reset  # Reset all data
 python -m src.cli.main seed   # Add sample data
 ```
 
+### Database Migrations
+```bash
+# Run migrations manually (if needed)
+python migrations/migrate_connection_type.py
+python migrations/migrate_service_ping.py
+python migrations/migrate_to_text_columns.py
+```
+
+**Note**: For the current version, you may need to drop and recreate tables. Future versions will support seamless migrations.
+
 ## 📁 Project Structure
 
 ```
@@ -197,12 +278,16 @@ headless-pm/
 │   ├── models/             # SQLModel database models
 │   ├── services/           # Business logic and utilities
 │   ├── cli/               # Command-line interface
+│   ├── mcp/               # MCP server implementation
 │   └── main.py            # FastAPI application
-├── tests/                 # Comprehensive test suite
+├── tests/                 # Test suite
+├── migrations/            # Database migration scripts
 ├── agent_instructions/    # Role-specific agent guides
+├── agents/               # Agent tools and installers
 ├── examples/             # Sample workflows and demos
 ├── setup/               # Installation and setup scripts
-└── docs/               # Project documentation
+├── docs/               # Project documentation
+└── headless_pm_client.py  # Python CLI client
 ```
 
 ## 🤖 Agent Roles

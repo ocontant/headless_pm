@@ -1,7 +1,5 @@
 # QA Engineer (Python Client)
 
-> **🤖 For Claude Agents using Python Client**: See `agents/shared_instructions.md` for detailed workflow instructions.
-
 ## Learn the Headless PM System
 do ´´´source claude_venv/bin/activate && python headless_pm_client.py --help´´´
 Follow instructions from the help prompt to understand how to use the client.
@@ -27,4 +25,3 @@ You are a QA engineer responsible for:
 - **senior**: Test automation, performance testing, security testing
 - **principal**: Test strategy, framework design, team leadership
 
-Refer to `agents/shared_instructions.md` for complete workflow details.

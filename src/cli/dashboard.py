@@ -19,7 +19,7 @@ from rich import box
 from rich.text import Text
 
 from src.models.database import get_session
-from src.models.models import Agent, Task, Service, Document, Changelog
+from src.models.models import Agent, Task, Service, Document, Changelog, Epic, Feature
 from src.models.enums import TaskStatus, AgentRole
 from src.models.document_enums import ServiceStatus, DocumentType
 
@@ -44,7 +44,8 @@ class HeadlessPMDashboard:
         
         self.layout["left"].split_column(
             Layout(name="tasks", ratio=1),
-            Layout(name="agents", ratio=2)
+            Layout(name="agents", ratio=1),
+            Layout(name="epics", ratio=1)
         )
         
         self.layout["right"].split_column(
@@ -214,6 +215,56 @@ class HeadlessPMDashboard:
         
         return Panel(table, title="Service Registry", border_style="yellow")
 
+    def render_epics(self) -> Panel:
+        """Render the epics panel"""
+        db = self.get_db()
+        
+        # Get all epics with their features and task counts
+        epics = db.exec(select(Epic).order_by(Epic.created_at.desc())).all()
+        
+        table = Table(title="Active Epics", box=box.MINIMAL)
+        table.add_column("Epic", style="cyan")
+        table.add_column("Features", justify="center", style="green")
+        table.add_column("Tasks", justify="center", style="blue")
+        table.add_column("Progress", style="magenta")
+        table.add_column("Created", style="yellow")
+        
+        for epic in epics[:6]:  # Show top 6 epics
+            # Count features
+            feature_count = len(epic.features)
+            
+            # Count total tasks and completed tasks
+            total_tasks = 0
+            completed_tasks = 0
+            
+            for feature in epic.features:
+                tasks = feature.tasks
+                total_tasks += len(tasks)
+                completed_tasks += len([t for t in tasks if t.status == TaskStatus.COMMITTED])
+            
+            # Calculate progress
+            if total_tasks > 0:
+                progress = int((completed_tasks / total_tasks) * 100)
+                progress_bar = f"[green]{'█' * (progress // 10)}[/green][dim]{'░' * (10 - progress // 10)}[/dim] {progress}%"
+            else:
+                progress_bar = "[dim]No tasks yet[/dim]"
+            
+            # Format creation date
+            created_str = epic.created_at.strftime("%m/%d")
+            
+            # Truncate epic name if too long
+            epic_name = epic.name[:20] + "..." if len(epic.name) > 20 else epic.name
+            
+            table.add_row(
+                epic_name,
+                str(feature_count),
+                f"{completed_tasks}/{total_tasks}",
+                progress_bar,
+                created_str
+            )
+        
+        return Panel(table, title="Epic Progress", border_style="bright_cyan")
+
 
     def render_activity(self) -> Panel:
         """Render the recent activity panel"""
@@ -295,6 +346,7 @@ class HeadlessPMDashboard:
         self.layout["header"].update(self.render_header())
         self.layout["tasks"].update(self.render_tasks())
         self.layout["agents"].update(self.render_agents())
+        self.layout["epics"].update(self.render_epics())
         self.layout["services"].update(self.render_services())
         self.layout["activity"].update(self.render_activity())
         self.layout["footer"].update(self.render_footer())

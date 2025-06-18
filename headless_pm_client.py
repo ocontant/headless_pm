@@ -262,6 +262,60 @@ def format_output(data: Any):
     print(json.dumps(data, indent=2, default=str))
 
 
+def validate_args(args, parser):
+    """Validate arguments and provide helpful error messages"""
+    
+    # Check for common mistake: trying to use "tasks list"
+    if args.command == "tasks" and hasattr(args, 'task_action') and args.task_action == "list":
+        print("Error: There is no 'tasks list' command")
+        print("\nTo get available tasks, use: python3 headless_pm_client.py tasks next --role YOUR_ROLE --level YOUR_LEVEL")
+        print("Example: python3 headless_pm_client.py tasks next --role backend_dev --level senior")
+        print("\nThis will return the next available task for your role and skill level.")
+        sys.exit(1)
+    
+    # Custom validation for tasks next command
+    if args.command == "tasks" and args.task_action == "next":
+        if not hasattr(args, 'role') or not args.role:
+            print("Error: tasks next requires --role argument")
+            print("Example: python3 headless_pm_client.py tasks next --role backend_dev --level senior")
+            print("\nAvailable roles: frontend_dev, backend_dev, qa, architect, pm")
+            sys.exit(1)
+        if not hasattr(args, 'level') or not args.level:
+            print("Error: tasks next requires --level argument")
+            print("Example: python3 headless_pm_client.py tasks next --role backend_dev --level senior")
+            print("\nAvailable levels: junior, senior, principal")
+            sys.exit(1)
+    
+    # Custom validation for changes command
+    elif args.command == "changes":
+        if not hasattr(args, 'since') or not args.since:
+            print("Error: changes command requires --since argument (Unix timestamp)")
+            print("Example: python3 headless_pm_client.py changes --since 1736359200 --agent-id 'backend_dev_001'")
+            sys.exit(1)
+        if not hasattr(args, 'agent_id') or not args.agent_id:
+            print("Error: changes command requires --agent-id argument")
+            print("Example: python3 headless_pm_client.py changes --since 1736359200 --agent-id 'backend_dev_001'")
+            sys.exit(1)
+    
+    # Custom validation for mentions command
+    elif args.command == "mentions":
+        if not hasattr(args, 'agent_id') or not args.agent_id:
+            print("Error: mentions command requires --agent-id argument")
+            print("Example: python3 headless_pm_client.py mentions --agent-id 'backend_dev_001'")
+            sys.exit(1)
+    
+    # Validation for task status
+    elif args.command == "tasks" and args.task_action == "status":
+        if not hasattr(args, 'agent_id') or not args.agent_id:
+            print("Error: tasks status requires --agent-id argument")
+            print("Example: python3 headless_pm_client.py tasks status 123 --status dev_done --agent-id 'backend_dev_001'")
+            sys.exit(1)
+        if not hasattr(args, 'status') or not args.status:
+            print("Error: tasks status requires --status argument")
+            print("Example: python3 headless_pm_client.py tasks status 123 --status dev_done --agent-id 'backend_dev_001'")
+            print("\nAvailable statuses: created, evaluation, approved, under_work, dev_done, qa_done, documentation_done, committed")
+            sys.exit(1)
+
 def main():
     # Load .env file before processing arguments
     load_env_file()
@@ -399,44 +453,88 @@ Key paths and settings:
 The goal is efficient, asynchronous collaboration. Your updates and documents are how the team stays synchronized. When in doubt, communicate more rather than less.
 
 ================================================================================
-AVAILABLE COMMANDS
+QUICK START - COMMON COMMANDS WITH EXAMPLES
 ================================================================================
 
+🚀 GETTING STARTED:
+  python3 headless_pm_client.py register --agent-id "backend_dev_001" --role backend_dev --level senior
+  python3 headless_pm_client.py context
+
+📋 WORKING WITH TASKS:
+  # Get your next task (REQUIRED: --role and --level)
+  python3 headless_pm_client.py tasks next --role backend_dev --level senior
+  
+  # Lock a task (REQUIRED: task_id and --agent-id)
+  python3 headless_pm_client.py tasks lock 123 --agent-id "backend_dev_001"
+  
+  # Update task status (REQUIRED: task_id, --status and --agent-id)
+  python3 headless_pm_client.py tasks status 123 --status under_work --agent-id "backend_dev_001"
+  
+  # Add comment to task
+  python3 headless_pm_client.py tasks comment 123 --comment "Working on this @qa_001" --agent-id "backend_dev_001"
+
+  # NOTE: There is NO 'tasks list' command - use 'tasks next' to get available tasks
+
+📄 CREATING DOCUMENTS:
+  # Create an update document
+  python3 headless_pm_client.py documents create --type update --title "Starting work" --content "Beginning task implementation" --author-id "backend_dev_001"
+  
+  # Create a critical issue
+  python3 headless_pm_client.py documents create --type critical_issue --title "Blocking issue" --content "Database connection failing @pm_001" --author-id "backend_dev_001"
+
+🔄 POLLING FOR CHANGES (REQUIRED: --since and --agent-id):
+  python3 headless_pm_client.py changes --since 1736359200 --agent-id "backend_dev_001"
+
+📢 CHECKING MENTIONS (REQUIRED: --agent-id):
+  python3 headless_pm_client.py mentions --agent-id "backend_dev_001"
+
+================================================================================
+COMPLETE COMMAND REFERENCE
+================================================================================
+
+AGENT MANAGEMENT:
   register              - Register an agent with role and skill level
-  agents list           - List all registered agents
+  agents list           - List all registered agents  
   agents delete         - Delete an agent (PM only)
   context               - Get project context and configuration
   
+EPIC MANAGEMENT:
   epics create          - Create new epic (PM/Architect only)
   epics list            - List all epics with progress
   epics delete          - Delete an epic (PM only)
   
+FEATURE MANAGEMENT:
   features create       - Create new feature (PM/Architect only)  
   features list         - List features for an epic
   features delete       - Delete a feature (PM only)
   
+TASK MANAGEMENT:
   tasks create          - Create a new task
-  tasks next            - Get next available task for your role/level
-  tasks lock            - Lock a task to work on it
-  tasks status          - Update task status (CREATED, APPROVED, UNDER_WORK, DEV_DONE, etc.)
-  tasks comment         - Add comment to task with @mentions
+  tasks next            - Get next available task for your role/level (REQUIRES: --role, --level)
+  tasks lock            - Lock a task to work on it (REQUIRES: task_id, --agent-id)
+  tasks status          - Update task status (REQUIRES: task_id, --status, --agent-id)
+  tasks comment         - Add comment to task with @mentions (REQUIRES: task_id, --comment, --agent-id)
   tasks delete          - Delete a task (PM only)
   
-  documents create      - Create document (standup, critical_issue, service_status, update)
+DOCUMENT MANAGEMENT:
+  documents create      - Create document (REQUIRES: --type, --title, --content, --author-id)
   documents list        - List documents with filtering
   documents get         - Get specific document by ID
   documents update      - Update existing document
   documents delete      - Delete a document
   
+SERVICE REGISTRY:
   services register     - Register/update a service
   services list         - List all registered services
   services heartbeat    - Send service heartbeat
   services unregister   - Remove service from registry
   
-  mentions              - Get mentions for an agent
+NOTIFICATIONS:
+  mentions              - Get mentions for an agent (REQUIRES: --agent-id)
   mention-read          - Mark a mention as read
   
-  changes               - Poll for changes since timestamp
+UPDATES:
+  changes               - Poll for changes since timestamp (REQUIRES: --since, --agent-id)
   changelog             - Get recent task status changes
 
 ENVIRONMENT VARIABLES:
@@ -534,23 +632,32 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     task_create.add_argument("--branch", required=True, help="Git branch name")
     task_create.add_argument("--agent-id", required=True, help="Creating agent ID")
     
-    task_next = task_sub.add_parser("next", help="Get next available task")
+    task_next = task_sub.add_parser("next", 
+                                    help="Get next available task for your role/level",
+                                    epilog="Example: python3 headless_pm_client.py tasks next --role backend_dev --level senior")
     task_next.add_argument("--role", required=True, 
-                          choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"])
+                          choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"],
+                          help="Your agent role (REQUIRED)")
     task_next.add_argument("--level", required=True, 
-                          choices=["junior", "senior", "principal"])
+                          choices=["junior", "senior", "principal"],
+                          help="Your skill level (REQUIRED)")
     
-    task_lock = task_sub.add_parser("lock", help="Lock a task")
+    task_lock = task_sub.add_parser("lock", 
+                                   help="Lock a task to work on it",
+                                   epilog="Example: python3 headless_pm_client.py tasks lock 123 --agent-id 'backend_dev_001'")
     task_lock.add_argument("task_id", type=int, help="Task ID to lock")
-    task_lock.add_argument("--agent-id", required=True, help="Agent ID")
+    task_lock.add_argument("--agent-id", required=True, help="Your agent ID (REQUIRED)")
     
-    task_status = task_sub.add_parser("status", help="Update task status")
+    task_status = task_sub.add_parser("status", 
+                                     help="Update task status",
+                                     epilog="Example: python3 headless_pm_client.py tasks status 123 --status dev_done --agent-id 'backend_dev_001' --notes 'Implementation complete'")
     task_status.add_argument("task_id", type=int, help="Task ID")
     task_status.add_argument("--status", required=True, 
                            choices=["created", "evaluation", "approved", "under_work", "dev_done", 
-                                   "qa_done", "documentation_done", "committed"])
-    task_status.add_argument("--agent-id", required=True, help="Agent ID")
-    task_status.add_argument("--notes", help="Optional notes")
+                                   "qa_done", "documentation_done", "committed"],
+                           help="New task status (REQUIRED)")
+    task_status.add_argument("--agent-id", required=True, help="Your agent ID (REQUIRED)")
+    task_status.add_argument("--notes", help="Optional notes about the status change")
     
     task_comment = task_sub.add_parser("comment", help="Add comment to task")
     task_comment.add_argument("task_id", type=int, help="Task ID")
@@ -565,14 +672,17 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     doc_parser = subparsers.add_parser("documents", help="Document management")
     doc_sub = doc_parser.add_subparsers(dest="doc_action")
     
-    doc_create = doc_sub.add_parser("create", help="Create document")
+    doc_create = doc_sub.add_parser("create", 
+                                   help="Create a document with @mention support",
+                                   epilog="Example: python3 headless_pm_client.py documents create --type update --title 'API Design' --content 'Working on authentication @architect_001' --author-id 'backend_dev_001'")
     doc_create.add_argument("--type", required=True, 
-                          choices=["standup", "critical_issue", "service_status", "update"])
-    doc_create.add_argument("--title", required=True, help="Document title")
-    doc_create.add_argument("--content", required=True, help="Document content (supports @mentions)")
-    doc_create.add_argument("--author-id", required=True, help="Author agent ID")
-    doc_create.add_argument("--meta-data", help="JSON metadata")
-    doc_create.add_argument("--expires-at", help="Expiration datetime (ISO format)")
+                          choices=["standup", "critical_issue", "service_status", "update"],
+                          help="Document type (REQUIRED)")
+    doc_create.add_argument("--title", required=True, help="Document title (REQUIRED)")
+    doc_create.add_argument("--content", required=True, help="Document content, supports @mentions (REQUIRED)")
+    doc_create.add_argument("--author-id", required=True, help="Your agent ID (REQUIRED)")
+    doc_create.add_argument("--meta-data", help="JSON metadata (optional)")
+    doc_create.add_argument("--expires-at", help="Expiration datetime in ISO format (optional)")
     
     doc_list = doc_sub.add_parser("list", help="List documents")
     doc_list.add_argument("--type", choices=["standup", "critical_issue", "service_status", "update"])
@@ -614,19 +724,23 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     service_unregister.add_argument("--agent-id", required=True, help="Owner agent ID")
     
     # Mentions
-    mentions_parser = subparsers.add_parser("mentions", help="Get mentions for agent")
-    mentions_parser.add_argument("--agent-id", required=True, help="Agent ID")
+    mentions_parser = subparsers.add_parser("mentions", 
+                                          help="Get @mentions for your agent",
+                                          epilog="Example: python3 headless_pm_client.py mentions --agent-id 'backend_dev_001'")
+    mentions_parser.add_argument("--agent-id", required=True, help="Your agent ID (REQUIRED)")
     mentions_parser.add_argument("--all", action="store_true", help="Include read mentions")
-    mentions_parser.add_argument("--limit", type=int, default=50, help="Max results")
+    mentions_parser.add_argument("--limit", type=int, default=50, help="Max results (default: 50)")
     
     mention_read = subparsers.add_parser("mention-read", help="Mark mention as read")
     mention_read.add_argument("mention_id", type=int, help="Mention ID")
     mention_read.add_argument("--agent-id", required=True, help="Agent ID")
     
     # Changes
-    changes_parser = subparsers.add_parser("changes", help="Poll for changes")
-    changes_parser.add_argument("--since", required=True, help="ISO datetime to get changes after")
-    changes_parser.add_argument("--agent-id", required=True, help="Agent ID")
+    changes_parser = subparsers.add_parser("changes", 
+                                         help="Poll for changes since a timestamp",
+                                         epilog="Example: python3 headless_pm_client.py changes --since 1736359200 --agent-id 'backend_dev_001'\nNote: Use Unix timestamp (seconds since epoch)")
+    changes_parser.add_argument("--since", required=True, help="Unix timestamp to get changes after (REQUIRED)")
+    changes_parser.add_argument("--agent-id", required=True, help="Your agent ID (REQUIRED)")
     
     # Changelog
     changelog_parser = subparsers.add_parser("changelog", help="Get recent task changes")
@@ -639,6 +753,9 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     if not args.command:
         parser.print_help()
         sys.exit(1)
+    
+    # Validate arguments for better error messages
+    validate_args(args, parser)
     
     # Initialize client
     client = HeadlessPMClient(args.url, args.api_key)
