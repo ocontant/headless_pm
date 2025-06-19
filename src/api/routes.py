@@ -278,6 +278,47 @@ def create_feature(request: FeatureCreateRequest, agent_id: str, db: Session = D
     
     return feature
 
+@router.get("/tasks", response_model=List[TaskResponse],
+    summary="List all tasks",
+    description="Get all tasks with optional filtering by status and role")
+def list_tasks(
+    status: Optional[TaskStatus] = None,
+    role: Optional[AgentRole] = None,
+    db: Session = Depends(get_session)
+):
+    """List all tasks with optional filtering"""
+    query = select(Task).order_by(Task.created_at.desc())
+    
+    if status:
+        query = query.where(Task.status == status)
+    
+    if role:
+        query = query.where(Task.target_role == role)
+    
+    tasks = db.exec(query).all()
+    
+    # Convert to TaskResponse objects
+    return [
+        TaskResponse(
+            id=task.id,
+            feature_id=task.feature_id,
+            title=task.title,
+            description=task.description,
+            created_by=task.creator.agent_id if task.creator else "unknown",
+            target_role=task.target_role,
+            difficulty=task.difficulty,
+            complexity=task.complexity,
+            branch=task.branch,
+            status=task.status,
+            locked_by=task.locked_by_agent.agent_id if task.locked_by_agent else None,
+            locked_at=task.locked_at,
+            notes=task.notes,
+            created_at=task.created_at,
+            updated_at=task.updated_at
+        )
+        for task in tasks
+    ]
+
 @router.post("/tasks/create", response_model=TaskResponse,
     summary="Create a new task",
     description="Any agent can create a task for any role")
