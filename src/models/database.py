@@ -61,9 +61,43 @@ def ensure_default_project():
             )
             session.add(default_project)
             session.commit()
+            session.refresh(default_project)
             print("✅ Created default Headless-PM project")
+            
+            # Create dashboard-user agent for the default project
+            ensure_dashboard_user(default_project.id, session)
         else:
             print("✅ Default Headless-PM project already exists")
+            # Ensure dashboard-user exists for existing project
+            ensure_dashboard_user(headless_pm.id, session)
+
+def ensure_dashboard_user(project_id: int, session: Session):
+    """Ensure the dashboard-user agent exists for the given project."""
+    from .models import Agent  # Import here to avoid circular imports
+    from .enums import AgentRole, DifficultyLevel, ConnectionType, AgentStatus
+    
+    # Check if dashboard-user agent exists
+    dashboard_user = session.exec(
+        select(Agent).where(Agent.agent_id == "dashboard-user")
+    ).first()
+    
+    if not dashboard_user:
+        # Create the dashboard-user agent
+        dashboard_agent = Agent(
+            agent_id="dashboard-user",
+            project_id=project_id,
+            role=AgentRole.PROJECT_PM,
+            level=DifficultyLevel.SENIOR,
+            connection_type=ConnectionType.CLIENT,
+            status=AgentStatus.IDLE,
+            last_seen=datetime.now(timezone.utc),
+            last_activity=datetime.now(timezone.utc)
+        )
+        session.add(dashboard_agent)
+        session.commit()
+        print("✅ Created dashboard-user agent")
+    else:
+        print("✅ Dashboard-user agent already exists")
 
 def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:
