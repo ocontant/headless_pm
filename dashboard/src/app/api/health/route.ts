@@ -4,7 +4,7 @@ export async function GET() {
   try {
     // Test connection to the main API
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969';
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
     
     let apiStatus = 'unknown';
     let apiReachable = false;
@@ -39,7 +39,7 @@ export async function GET() {
     // Check environment variables
     const envStatus = {
       api_url: !!process.env.NEXT_PUBLIC_API_URL,
-      api_key: !!process.env.NEXT_PUBLIC_API_KEY,
+      api_key: !!process.env.API_KEY,
       node_env: process.env.NODE_ENV || 'unknown'
     };
     
@@ -70,7 +70,7 @@ export async function HEAD() {
   // For simple health checks that just need a status code
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969';
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);

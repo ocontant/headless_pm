@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  env: {
+    // Make API_KEY available to the client-side code
+    API_KEY: process.env.API_KEY,
+  },
 };
 
 export default nextConfig;

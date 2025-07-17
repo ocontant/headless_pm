@@ -27,7 +27,7 @@ export function SettingsMenu() {
   const [apiConfigOpen, setApiConfigOpen] = useState(false)
   const [aboutOpen, setAboutOpen] = useState(false)
   const [apiUrl, setApiUrl] = useState(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969')
-  const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_API_KEY || '')
+  const [apiKey, setApiKey] = useState(process.env.API_KEY || '')
 
   const handleApiDocumentation = () => {
     window.open('http://localhost:6969/api/v1/docs', '_blank')

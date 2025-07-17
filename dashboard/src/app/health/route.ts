@@ -5,7 +5,7 @@ export async function GET() {
     // Define service URLs
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969';
     const mcpUrl = process.env.NEXT_PUBLIC_MCP_URL || 'http://localhost:6968';
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
     
     // Helper function to fetch dependency health
     async function fetchDependencyHealth(url: string, serviceName: string) {
@@ -110,7 +110,7 @@ export async function HEAD() {
   // For simple health checks that just need a status code
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969';
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
