@@ -203,7 +203,7 @@ class MCPBridge:
                     write_stream,
                     InitializationOptions(
                         server_name="headless-pm",
-                        server_version="1.0.0",
+                        server_version="2.0.0",
                         capabilities=self.server.get_capabilities()
                     )
                 )

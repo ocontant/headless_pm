@@ -4,6 +4,22 @@ This document tracks major changes and updates to the Headless PM system.
 
 ## Recent Major Updates (July 2025)
 
+### 🎯 Version 2.0.0 Release
+**Date**: July 17, 2025  
+**Commit**: Latest
+
+#### 🚀 Major Version Bump
+- **Version Update**: Bumped from 1.0.0 to 2.0.0 across all services
+- **Breaking Changes**: Multi-project architecture requires database migration
+- **API Compatibility**: New project endpoints and enhanced functionality
+- **Service Management**: Complete overhaul of service management system
+
+#### 📦 Updated Components
+- **Main API**: FastAPI application version updated to 2.0.0
+- **Dashboard**: Next.js dashboard version updated to 2.0.0
+- **MCP Servers**: All MCP server implementations updated to 2.0.0
+- **Health Endpoints**: Version reporting updated across all services
+
 ### 📚 Documentation Updates
 **Date**: July 17, 2025  
 **Commit**: `1bb0119`

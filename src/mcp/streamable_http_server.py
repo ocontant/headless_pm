@@ -43,7 +43,7 @@ class StreamableHTTPMCPServer:
         self.base_url = base_url.rstrip('/')
         self.app = FastAPI(
             title="Headless PM MCP Server",
-            version="1.0.0",
+            version="2.0.0",
             description="MCP server with Streamable HTTP transport"
         )
         self.client = httpx.AsyncClient(timeout=30.0)
@@ -185,7 +185,7 @@ class StreamableHTTPMCPServer:
             },
             "serverInfo": {
                 "name": "headless-pm",
-                "version": "1.0.0"
+                "version": "2.0.0"
             }
         }
     

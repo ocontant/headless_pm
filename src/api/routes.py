@@ -63,7 +63,7 @@ def api_health_check_direct():
     return {
         "status": "healthy" if db_status == "healthy" else "degraded",
         "service": "headless-pm-api",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "database": db_status,
         "timestamp": datetime.utcnow().isoformat()
     }
@@ -351,7 +351,7 @@ def api_health_check():
     return {
         "status": "healthy" if db_status == "healthy" else "degraded",
         "service": "headless-pm-api",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "database": db_status,
         "timestamp": datetime.utcnow().isoformat()
     }

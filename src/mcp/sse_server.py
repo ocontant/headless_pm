@@ -28,7 +28,7 @@ class SSEMCPServer:
         self.base_url = base_url.rstrip('/')
         self.app = FastAPI(
             title="Headless PM MCP SSE Server",
-            version="1.0.0",
+            version="2.0.0",
             description="MCP server with SSE transport for Claude Code"
         )
         self.client = httpx.AsyncClient(timeout=30.0)
@@ -176,7 +176,7 @@ class SSEMCPServer:
             },
             "serverInfo": {
                 "name": "headless-pm",
-                "version": "1.0.0"
+                "version": "2.0.0"
             }
         }
     

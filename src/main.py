@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Headless PM API",
     description="A lightweight project management API for LLM agent coordination",
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json",
@@ -85,7 +85,7 @@ def health_check():
     return {
         "status": "healthy" if db_status == "healthy" else "degraded",
         "service": "headless-pm-api",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "pid": os.getpid(),
         "database": db_status,
         "timestamp": datetime.utcnow().isoformat(),
@@ -120,7 +120,7 @@ def status_check():
         
         return {
             "service": "headless-pm-api",
-            "version": "1.0.0",
+            "version": "2.0.0",
             "metrics": {
                 "total_projects": project_count,
                 "total_agents": agent_count,
@@ -134,7 +134,7 @@ def status_check():
     except Exception as e:
         return {
             "service": "headless-pm-api",
-            "version": "1.0.0",
+            "version": "2.0.0",
             "error": str(e),
             "timestamp": datetime.utcnow().isoformat()
         }

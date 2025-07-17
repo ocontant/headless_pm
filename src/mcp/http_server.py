@@ -38,7 +38,7 @@ class HTTPMCPServer:
     
     def __init__(self, base_url: str = "http://localhost:6969"):
         self.base_url = base_url.rstrip('/')
-        self.app = FastAPI(title="Headless PM MCP Server", version="1.0.0")
+        self.app = FastAPI(title="Headless PM MCP Server", version="2.0.0")
         self.client = httpx.AsyncClient(timeout=30.0)
         self.token_tracker = TokenTracker()
         self.sessions: Dict[str, Dict[str, Any]] = {}
@@ -53,7 +53,7 @@ class HTTPMCPServer:
         async def root():
             return {
                 "name": "headless-pm-mcp",
-                "version": "1.0.0",
+                "version": "2.0.0",
                 "description": "MCP server for Headless PM",
                 "endpoints": {
                     "initialize": "POST /mcp/initialize",
@@ -96,7 +96,7 @@ class HTTPMCPServer:
                 },
                 "serverInfo": {
                     "name": "headless-pm-mcp",
-                    "version": "1.0.0",
+                    "version": "2.0.0",
                     "apiUrl": self.base_url
                 }
             }

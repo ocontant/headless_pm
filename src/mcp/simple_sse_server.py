@@ -106,7 +106,7 @@ class SimpleMCPSSEServer:
                 return {
                     "status": overall_status,
                     "service": "headless-pm-mcp-sse",
-                    "version": "1.0.0",
+                    "version": "2.0.0",
                     "pid": os.getpid(),
                     "active_sessions": active_sessions,
                     "base_url": self.base_url,
@@ -123,7 +123,7 @@ class SimpleMCPSSEServer:
                 return {
                     "status": "error",
                     "service": "headless-pm-mcp-sse",
-                    "version": "1.0.0",
+                    "version": "2.0.0",
                     "pid": os.getpid(),
                     "error": str(e),
                     "timestamp": datetime.utcnow().isoformat(),
@@ -172,7 +172,7 @@ class SimpleMCPSSEServer:
                 
                 return {
                     "service": "headless-pm-mcp-sse",
-                    "version": "1.0.0",
+                    "version": "2.0.0",
                     "status": "healthy" if api_details.get("reachable") else "degraded",
                     "sessions": {
                         "active_count": len(self.sessions),
@@ -185,7 +185,7 @@ class SimpleMCPSSEServer:
             except Exception as e:
                 return {
                     "service": "headless-pm-mcp-sse",
-                    "version": "1.0.0",
+                    "version": "2.0.0",
                     "status": "error",
                     "error": str(e),
                     "timestamp": datetime.utcnow().isoformat()
@@ -212,7 +212,7 @@ class SimpleMCPSSEServer:
                         },
                         "serverInfo": {
                             "name": "headless-pm",
-                            "version": "1.0.0"
+                            "version": "2.0.0"
                         }
                     }
                 
