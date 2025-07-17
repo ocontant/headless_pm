@@ -1,10 +1,35 @@
-# Task Management API Reference
+# API Reference Guide
 
-This document provides a complete reference for task management endpoints in the Headless PM system.
+This document provides a complete reference for all Headless PM API endpoints.
 
 ## Overview
 
-Task management endpoints are available under `/api/v1/tasks/*`. All endpoints require the `X-API-KEY` header.
+All API endpoints are available under `/api/v1/*` and require the `X-API-KEY` header for authentication.
+
+## Project Management Endpoints
+
+### Create Project
+**POST** `/api/v1/projects`
+- **Permissions**: PM and Architect roles only
+- **Body**: `{"name": "Project Name", "description": "Description", "repository_url": "URL", "status": "active"}`
+
+### List Projects  
+**GET** `/api/v1/projects`
+- Returns all projects with basic information
+
+### Get Project Details
+**GET** `/api/v1/projects/{id}`
+- Returns detailed project information including statistics
+
+### Update Project
+**PUT** `/api/v1/projects/{id}`
+- **Permissions**: PM and Architect roles only
+- **Body**: Updated project fields
+
+### Delete Project
+**DELETE** `/api/v1/projects/{id}`
+- **Permissions**: PM role only
+- **Warning**: Permanently deletes all project data
 
 ## Task Management Endpoints
 

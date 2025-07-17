@@ -45,25 +45,30 @@ python -m src.cli.main seed  # Optional: add sample data
 # Activate your virtual environment first
 source venv/bin/activate  # or source claude_venv/bin/activate
 
-# Use the automated start script (checks environment, DB, starts server)
-./start.sh
+# Use the service management system for full control
+./scripts/manage_services.sh start
 ```
 
-#### Manual Start
+#### Alternative Start Methods
 ```bash
-# Run API server
-bash start.sh
+# Check service status before starting
+./scripts/manage_services.sh status
+
+# Start with real-time monitoring
+./scripts/manage_services.sh start && ./scripts/manage_services.sh status --watch
 ```
 
-The `start.sh` script automatically:
+The service management system automatically:
 - ✅ Validates Python 3.11+ requirement  
 - ✅ Checks required packages are installed
 - ✅ Creates .env from env-example if needed
-- ✅ Tests database connection
+- ✅ Tests database connection and runs migrations
 - ✅ Initializes database if needed
 - ✅ Checks port availability
 - ✅ Starts server with proper configuration
 - ✅ Starts only services with defined ports in .env
+- ✅ Creates PID files for process management
+- ✅ Provides health monitoring and log management
 
 **Service Port Configuration:**
 - Services are only started if their port is defined in `.env`
@@ -147,16 +152,19 @@ python -m pytest -k "test_name_pattern"
 
 Headless PM is a REST API for LLM agent task coordination with document-based communication. Key architectural decisions:
 
-1. **Document-Based Communication**: Agents communicate via documents with @mention support
-2. **Service Registry**: Track running services with heartbeat monitoring
-3. **Git Workflow Integration**: Major tasks use feature branches with PRs, minor tasks commit directly to main
-4. **Changes Polling**: Efficient polling endpoint for agents to get updates since last check
-5. **Role-Based System**: Five roles (frontend_dev, backend_dev, qa, architect, pm) with multiple agents per role
-6. **Task Complexity**: Major/minor classification determines Git workflow (PR vs direct commit)
-7. **Comprehensive Testing**: 78 tests with 71% coverage including full API testing
+1. **Multi-Project Support**: Isolated project contexts with proper foreign key relationships
+2. **Document-Based Communication**: Agents communicate via documents with @mention support
+3. **Service Registry**: Track running services with heartbeat monitoring and ping URLs
+4. **Git Workflow Integration**: Major tasks use feature branches with PRs, minor tasks commit directly to main
+5. **Changes Polling**: Efficient polling endpoint for agents to get updates since last check
+6. **Role-Based System**: Five roles (frontend_dev, backend_dev, qa, architect, pm) with multiple agents per role
+7. **Task Complexity**: Major/minor classification determines Git workflow (PR vs direct commit)
+8. **Database Migrations**: Schema evolution support with automated migration runner
+9. **Comprehensive Testing**: 78 tests with 71% coverage including full API testing
 
 ### Enhanced Features
-- **Epic/Feature/Task Hierarchy**: Three-level project organization
+- **Multi-Project Architecture**: Complete project isolation with proper relationships
+- **Epic/Feature/Task Hierarchy**: Three-level project organization within projects
 - **Documents Table**: Agent communication with mention detection
 - **Service Registry**: Track microservices with heartbeat monitoring and ping URLs
 - **Mentions System**: @username notifications across documents and tasks
@@ -165,9 +173,10 @@ Headless PM is a REST API for LLM agent task coordination with document-based co
 - **Connection Types**: Distinguish between MCP and client connections
 - **Task Comments**: Collaborative discussion on tasks with @mentions
 - **Python Client Helper**: Complete CLI interface (`headless_pm_client.py`)
-- **MCP Server**: Natural language interface for Claude Code
-- **Database Migrations**: Schema evolution support
-- **Web Dashboard**: Real-time project overview with analytics and monitoring
+- **MCP Server**: Natural language interface for Claude Code with token tracking
+- **Database Migrations**: Schema evolution support with automated runner
+- **Web Dashboard**: Real-time project overview with analytics and monitoring (Next.js 15.4.1)
+- **Service Management**: Comprehensive pidfile-based process management system
 - **Port-based Service Control**: Services only start if their port is defined in .env
 
 ## Project Structure
@@ -186,16 +195,34 @@ headless-pm/
 │   └── package.json       # Dashboard dependencies
 ├── tests/                 # Test files
 ├── migrations/            # Database migration scripts
+│   ├── add_agent_status_column.py
+│   ├── add_project_support.py
+│   └── run_migrations.py  # Migration runner
 ├── agent_instructions/    # Per-role markdown instructions
 ├── agents/                # Agent tools and installers
-│   └── claude/            # Claude Code specific tools
+│   ├── claude/            # Claude Code specific tools
+│   ├── client/            # Client tools and utilities
+│   └── mcp/               # MCP-specific agent instructions
+├── scripts/               # Service management scripts
+│   ├── manage_services.sh # Main service control
+│   ├── start_services.sh  # Start with pidfiles
+│   ├── stop_services.sh   # Stop and cleanup
+│   └── check_services.sh  # Health monitoring
 ├── setup/                 # Installation and setup scripts
 ├── docs/                  # Project documentation
+│   ├── dashboard/         # Dashboard-specific docs
 │   └── images/            # Dashboard screenshots
 └── headless_pm_client.py  # Python CLI client
 ```
 
 ## Key API Endpoints
+
+### Project Management
+- `POST /api/v1/projects` - Create new project (PM/Architect only)
+- `GET /api/v1/projects` - List all projects
+- `GET /api/v1/projects/{id}` - Get project details
+- `PUT /api/v1/projects/{id}` - Update project (PM/Architect only)
+- `DELETE /api/v1/projects/{id}` - Delete project (PM only)
 
 ### Core Task Management
 - `POST /api/v1/register` - Register agent with role/skill level and connection type
@@ -233,10 +260,39 @@ headless-pm/
 ## Technology Stack
 
 - **FastAPI** - REST API framework
-- **SQLModel** - ORM combining SQLAlchemy + Pydantic
-- **Pydantic** - Data validation
-- **SQLite/MySQL** - Database options
+- **SQLModel** - ORM combining SQLAlchemy + Pydantic  
+- **Pydantic 2.11.7** - Data validation (version-locked for compatibility)
+- **SQLite/MySQL** - Database options with migration support
+- **Next.js 15.4.1** - Web dashboard framework with Turbopack
+- **React 19.1.0** - Frontend library
 - **Python 3.11+** - Runtime requirement
+
+## Database Migrations
+
+The system includes automated migration support:
+
+### Running Migrations
+```bash
+# Run all pending migrations
+python migrations/run_migrations.py
+
+# Run specific migration
+python migrations/add_project_support.py
+
+# Check database health
+python -m src.cli.main sanity-check
+```
+
+### Available Migrations
+- `add_agent_status_column.py` - Adds agent status tracking
+- `add_project_support.py` - Adds multi-project architecture
+- `run_migrations.py` - Orchestrates migration execution
+
+### Migration Features
+- **Foreign Key Constraint Handling** - Safe table modifications
+- **Data Preservation** - Existing data maintained during schema changes  
+- **Rollback Support** - Safe restoration capabilities
+- **Validation** - Post-migration sanity checks
 
 ## Development Notes
 

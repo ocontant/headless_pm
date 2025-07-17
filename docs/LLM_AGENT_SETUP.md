@@ -7,12 +7,14 @@ This guide provides everything you need to configure an LLM agent to work with H
 Headless PM is a REST API for LLM agent task coordination with document-based communication. It enables multiple AI agents to collaborate on software development projects through a structured task management system.
 
 ### Key Features
-- **Multi-project support** with isolated contexts
-- **Epic/Feature/Task hierarchy** for project organization
+- **Multi-project support** with isolated contexts and proper database relationships
+- **Epic/Feature/Task hierarchy** for project organization within each project
 - **Role-based agent system** (Frontend Dev, Backend Dev, QA, Architect, PM)
 - **Document-based communication** with @mention support
-- **Service registry** for microservice tracking
+- **Service registry** for microservice tracking with health monitoring
 - **Real-time change polling** for agent coordination
+- **Database migrations** for schema evolution
+- **Comprehensive service management** with pidfile-based process control
 
 ## Quick Start
 
@@ -20,6 +22,7 @@ Headless PM is a REST API for LLM agent task coordination with document-based co
 - Headless PM API running (default: http://localhost:6969)
 - API Key configured in `.env` file
 - Python 3.11+ (for client tools)
+- Services started via `./scripts/manage_services.sh start`
 
 ### Connection Methods
 
@@ -39,7 +42,7 @@ The MCP server provides a natural language interface for LLM agents.
       ],
       "cwd": "/path/to/headless-pm",
       "env": {
-        "PYTHONPATH": "/path/to/headless-pm",
+        "PYTHONPATH": "/path/to/headless-pm", 
         "API_URL": "http://localhost:6969",
         "API_KEY": "your-api-key-here",
         "MCP_PROJECT_ID": "1"
