@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/v1/documents", tags=["Documents"], dependencies=
 def create_document(
     request: DocumentCreateRequest,
     author_id: str = Query(..., description="Agent ID of the author"),
+    project_id: int = Query(..., description="Project ID for the document"),
     db: Session = Depends(get_session)
 ):
     try:
@@ -41,6 +42,7 @@ def create_document(
         
         # Create document
         document = Document(
+            project_id=project_id,
             doc_type=request.doc_type,
             author_id=author_id,
             title=request.title,
@@ -67,7 +69,7 @@ def create_document(
     
     # Extract and create mentions
     mentions = create_mentions_for_document(
-        db, document.id, request.content, author_id
+        db, document.id, request.content, author_id, project_id
     )
     db.commit()
     
@@ -91,12 +93,13 @@ def create_document(
     summary="List documents",
     description="List documents by type, with optional filtering")
 def list_documents(
+    project_id: int = Query(..., description="Project ID to filter documents"),
     doc_type: Optional[DocumentType] = Query(None, description="Filter by document type"),
     author_id: Optional[str] = Query(None, description="Filter by author"),
     limit: int = Query(1000, description="Maximum number of documents to return"),
     db: Session = Depends(get_session)
 ):
-    query = select(Document)
+    query = select(Document).where(Document.project_id == project_id)
     
     if doc_type:
         query = query.where(Document.doc_type == doc_type)

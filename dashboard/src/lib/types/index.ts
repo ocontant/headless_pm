@@ -5,6 +5,9 @@ export enum AgentRole {
   BackendDev = "backend_dev",
   QA = "qa", 
   Architect = "architect",
+  GlobalPM = "global_pm",
+  ProjectPM = "project_pm",
+  // Legacy role (deprecated)
   PM = "pm"
 }
 
@@ -42,26 +45,63 @@ export enum TaskComplexity {
   Major = "major"
 }
 
+export enum AgentStatus {
+  Idle = "idle",
+  Working = "working",
+  Offline = "offline"
+}
+
 export enum DocumentType {
   Comment = "comment",
   Update = "update",
   Question = "question",
+  Issue = "issue",
+  Note = "note",
   Announcement = "announcement",
   Decision = "decision",
   Report = "report"
 }
 
+export interface Project {
+  id: number;
+  name: string;
+  description: string;
+  shared_path: string;
+  instructions_path: string;
+  project_docs_path: string;
+  code_guidelines_path?: string;
+  created_at: string;
+  updated_at: string;
+  agent_count?: number;
+  epic_count?: number;
+  task_count?: number;
+}
+
 export interface Agent {
   id: number;
   agent_id: string;
+  project_id: number;
+  project_name?: string;
   role: AgentRole;
   level: SkillLevel; // API uses 'level' not 'skill_level'
   skill_level?: SkillLevel; // Keep for backward compatibility
   name?: string;
   connection_type: ConnectionType;
+  status: AgentStatus;
+  current_task_id?: number;
   created_at?: string;
   last_seen?: string;
+  last_activity?: string;
+}
+
+export interface AgentAvailability {
+  agent_id: string;
+  project_id: number;
+  is_available: boolean;
   current_task_id?: number;
+  current_task_title?: string;
+  last_activity: string;
+  status: AgentStatus;
 }
 
 export interface Epic {
@@ -153,24 +193,27 @@ export interface Mention {
 }
 
 export interface Service {
-  name: string;
-  type: string;
-  endpoint_url: string;
+  id: number;
+  service_name: string;
+  owner_agent_id: string;
   ping_url?: string;
-  status: "active" | "inactive";
-  metadata?: Record<string, any>;
+  port?: number;
+  status: "up" | "down" | "starting";
   last_heartbeat?: string;
-  created_at: string;
+  last_ping_at?: string;
+  last_ping_success?: boolean;
+  meta_data?: Record<string, any>;
+  updated_at?: string;
 }
 
 export interface ProjectContext {
+  project_id: number;
   project_name: string;
-  project_description: string;
-  git_repo: string;
-  main_branch: string;
-  services_dir: string;
-  current_sprint?: string;
-  tech_stack?: string[];
+  shared_path: string;
+  instructions_path: string;
+  project_docs_path: string;
+  code_guidelines_path?: string;
+  database_type: string;
 }
 
 export interface Changes {

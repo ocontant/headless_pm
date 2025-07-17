@@ -32,7 +32,7 @@ export default function Home() {
   const inProgressTasks = tasks?.filter(t => 
     [TaskStatus.UnderWork, TaskStatus.DevDone, TaskStatus.QADone].includes(t.status)
   ).length || 0;
-  const blockedTasks = 0; // No blocked status in new enum
+  const blockedTasks = tasks?.filter(t => t.status === TaskStatus.Created && t.locked_by).length || 0;
   
   const activeAgents = agents?.filter(a => {
     if (!a.last_seen) return false;
@@ -41,7 +41,7 @@ export default function Home() {
     return lastSeenTime > fiveMinutesAgo;
   }).length || 0;
 
-  const activeServices = services?.filter(s => s.status === 'active').length || 0;
+  const activeServices = services?.filter(s => s.status?.toLowerCase() === 'up').length || 0;
 
   // Recent activity
   const recentTasks = tasks?.slice(-5).reverse() || [];
@@ -142,8 +142,8 @@ export default function Home() {
                             <Badge variant="outline" className="text-xs">
                               {task.status.replace('_', ' ')}
                             </Badge>
-                            {task.assigned_agent_id && (
-                              <span>• {task.assigned_agent_id}</span>
+                            {task.assigned_agent && (
+                              <span>• {task.assigned_agent.name || task.assigned_agent.id}</span>
                             )}
                           </div>
                         </div>

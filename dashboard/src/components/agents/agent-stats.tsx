@@ -113,7 +113,7 @@ export function AgentStats() {
           <CardTitle className="text-sm font-medium">Team Composition</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <div className="text-sm font-medium">By Skill Level</div>
               <div className="space-y-1 text-sm">

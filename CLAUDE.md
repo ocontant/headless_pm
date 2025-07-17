@@ -74,6 +74,40 @@ The `start.sh` script automatically:
 
 **Note**: Activate your virtual environment before running the start script.
 
+### Advanced Service Management
+
+For production use or advanced control, use the service management scripts:
+
+```bash
+# Start all services with pidfile management
+./scripts/manage_services.sh start
+
+# Stop all services
+./scripts/manage_services.sh stop
+
+# Check service status and health
+./scripts/manage_services.sh status --detailed
+
+# Monitor services in real-time
+./scripts/manage_services.sh status --watch
+
+# Restart specific service
+./scripts/manage_services.sh restart api
+
+# View service logs
+./scripts/manage_services.sh logs dashboard
+```
+
+**Service Management Features:**
+- **PID Management**: Each service tracked with pidfiles in `run/` directory
+- **Health Monitoring**: HTTP health checks and resource monitoring
+- **Log Management**: Individual log files per service
+- **Graceful Shutdown**: SIGTERM first, SIGKILL if needed
+- **Force Operations**: `--force` flag for immediate termination
+- **Service-Specific Control**: Start/stop individual services
+
+See `docs/SERVICE_MANAGEMENT.md` for complete documentation.
+
 ## Testing
 
 ### Running Tests

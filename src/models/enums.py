@@ -16,6 +16,9 @@ class AgentRole(str, Enum):
     BACKEND_DEV = "backend_dev"
     QA = "qa"
     ARCHITECT = "architect"
+    GLOBAL_PM = "global_pm"
+    PROJECT_PM = "project_pm"
+    # Legacy role (deprecated but kept for backward compatibility)
     PM = "pm"
 
 class DifficultyLevel(str, Enum):
@@ -34,3 +37,8 @@ class ConnectionType(str, Enum):
 class TaskType(str, Enum):
     REGULAR = "regular"   # Normal development task
     WAITING = "waiting"   # Synthetic waiting task for polling
+
+class AgentStatus(str, Enum):
+    IDLE = "idle"         # Agent is available for new tasks
+    WORKING = "working"   # Agent is working on a task
+    OFFLINE = "offline"   # Agent hasn't been seen recently

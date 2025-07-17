@@ -29,14 +29,15 @@ import { format } from 'date-fns';
 import { TaskFilters } from './task-filters';
 import { TaskDetailModal } from './task-detail-modal';
 import { HeadlessPMClient } from '@/lib/api/client';
+import { STATUS_COLORS, ROLE_COLORS as THEME_ROLE_COLORS } from '@/lib/theme-colors';
 
 const TASK_STATUSES = [
-  { key: TaskStatus.Created, label: 'CREATED', color: 'bg-slate-100 text-slate-700' },
-  { key: TaskStatus.UnderWork, label: 'UNDER WORK', color: 'bg-blue-100 text-blue-700' },
-  { key: TaskStatus.DevDone, label: 'DEV DONE', color: 'bg-green-100 text-green-700' },
-  { key: TaskStatus.QADone, label: 'QA DONE', color: 'bg-purple-100 text-purple-700' },
-  { key: TaskStatus.DocumentationDone, label: 'DOCS DONE', color: 'bg-orange-100 text-orange-700' },
-  { key: TaskStatus.Committed, label: 'COMMITTED', color: 'bg-emerald-100 text-emerald-700' }
+  { key: TaskStatus.Created, label: 'CREATED', color: 'bg-muted text-muted-foreground' },
+  { key: TaskStatus.UnderWork, label: 'UNDER WORK', color: 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300' },
+  { key: TaskStatus.DevDone, label: 'DEV DONE', color: 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300' },
+  { key: TaskStatus.QADone, label: 'QA DONE', color: 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300' },
+  { key: TaskStatus.DocumentationDone, label: 'DOCS DONE', color: 'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300' },
+  { key: TaskStatus.Committed, label: 'COMMITTED', color: 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300' }
 ];
 
 const ROLE_COLORS = {
@@ -44,7 +45,9 @@ const ROLE_COLORS = {
   [AgentRole.BackendDev]: 'bg-green-500 text-white',
   [AgentRole.QA]: 'bg-purple-500 text-white',
   [AgentRole.Architect]: 'bg-orange-500 text-white',
-  [AgentRole.PM]: 'bg-red-500 text-white'
+  [AgentRole.GlobalPM]: 'bg-red-500 text-white',
+  [AgentRole.ProjectPM]: 'bg-pink-500 text-white',
+  [AgentRole.PM]: 'bg-red-500 text-white' // Legacy role
 };
 
 const DIFFICULTY_COLORS = {
@@ -143,9 +146,9 @@ function TaskCard({
     >
       <CardContent className="p-3">
         {isHovered && (
-          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground border text-xs px-2 py-1 rounded whitespace-nowrap z-10">
             Double-click to view details
-            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-popover border-l border-b rotate-45"></div>
           </div>
         )}
         <div className="space-y-3">

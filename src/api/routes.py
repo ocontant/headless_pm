@@ -6,14 +6,14 @@ import os
 from src.models.database import get_session
 from src.models.enums import TaskStatus, AgentRole, DifficultyLevel
 from src.api.schemas import (
-    AgentRegisterRequest, AgentResponse, AgentRegistrationResponse,
+    AgentRegisterRequest, AgentResponse, AgentRegistrationResponse, AgentAvailabilityResponse,
     EpicCreateRequest, FeatureCreateRequest,
     TaskCreateRequest, TaskResponse, TaskStatusUpdateRequest, TaskStatusUpdateResponse,
     TaskCommentRequest,
     ProjectContextResponse, EpicResponse, FeatureResponse,
     ChangelogResponse, MentionResponse
 )
-from src.api.dependencies import verify_api_key
+from src.api.dependencies import verify_api_key, get_db_public
 
 # Import service functions
 from src.services.agent_service import (
@@ -24,14 +24,49 @@ from src.services.task_service import (
 )
 from src.services.task_management_service import (
     create_task, list_tasks, lock_task, update_task_status, 
-    add_task_comment, delete_task, get_recent_changelog
+    add_task_comment, delete_task, get_recent_changelog, assign_task_to_agent
 )
 from src.services.epic_feature_service import (
     create_epic, list_epics, create_feature, list_features_for_epic,
     delete_epic, delete_feature
 )
 
+# Public router for read-only operations (no authentication required)
+public_router = APIRouter(prefix="/api/v1/public", tags=["Public"])
+
+# Health router (no authentication required)
+health_router = APIRouter(prefix="/api/v1", tags=["Health"])
+
+# Authenticated router for write operations (API key required)
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+
+# Health endpoint (no authentication required) - direct route
+@health_router.get("/health",
+    summary="API Health Check",
+    description="Check the health status of the API service")
+def api_health_check_direct():
+    """Health check endpoint for the API service (no auth required)"""
+    from src.models.database import get_session
+    from sqlmodel import select
+    from src.models.models import Agent
+    from datetime import datetime
+    
+    try:
+        # Test database connection
+        db = next(get_session())
+        db.exec(select(Agent).limit(1))
+        db.close()
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "service": "headless-pm-api",
+        "version": "1.0.0",
+        "database": db_status,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 
 # Agent endpoints
@@ -46,12 +81,13 @@ def register_agent(request: AgentRegisterRequest, db: Session = Depends(get_sess
     next_task = get_next_task_for_agent(agent, db)
     
     # Get unread mentions
-    mentions = get_unread_mentions(agent.agent_id, db)
+    mentions = get_unread_mentions(agent.agent_id, agent.project_id, db)
     
     return AgentRegistrationResponse(
         agent=AgentResponse(
             id=agent.id,
             agent_id=agent.agent_id,
+            project_id=agent.project_id,
             role=agent.role,
             level=agent.level,
             connection_type=agent.connection_type,
@@ -64,28 +100,58 @@ def register_agent(request: AgentRegisterRequest, db: Session = Depends(get_sess
 
 @router.get("/agents", response_model=List[AgentResponse],
     summary="List all agents", 
-    description="Get a list of all registered agents")
-def list_agents(db: Session = Depends(get_session)):
-    return list_all_agents(db)
+    description="Get a list of all registered agents, optionally filtered by project")
+def list_agents(project_id: Optional[int] = None, db: Session = Depends(get_session)):
+    return list_all_agents(db, project_id)
 
 
 @router.delete("/agents/{agent_id}",
     summary="Delete an agent (PM only)",
     description="Delete an agent record. Only PM agents can perform this action.")
-def delete_agent_endpoint(agent_id: str, requester_agent_id: str, db: Session = Depends(get_session)):
-    return delete_agent(agent_id, requester_agent_id, db)
+def delete_agent_endpoint(agent_id: str, requester_agent_id: str, project_id: int, db: Session = Depends(get_session)):
+    return delete_agent(agent_id, requester_agent_id, project_id, db)
+
+
+@router.get("/agents/availability", response_model=List[AgentAvailabilityResponse],
+    summary="Get agent availability",
+    description="Get availability status for all agents in a project")
+def get_agents_availability(
+    project_id: int,
+    role: Optional[AgentRole] = None,
+    db: Session = Depends(get_session)
+):
+    from src.services.agent_service import get_agents_availability
+    return get_agents_availability(project_id, role, db)
+
+
+@router.get("/agents/{agent_id}/availability", response_model=AgentAvailabilityResponse,
+    summary="Get specific agent availability",
+    description="Get availability status for a specific agent")
+def get_agent_availability(
+    agent_id: str,
+    project_id: int,
+    db: Session = Depends(get_session)
+):
+    from src.services.agent_service import get_agent_availability
+    return get_agent_availability(agent_id, project_id, db)
 
 
 # Project context endpoint
-@router.get("/context", response_model=ProjectContextResponse,
+@router.get("/context/{project_id}", response_model=ProjectContextResponse,
     summary="Get project context",
     description="Get project configuration and paths for documentation")
-def get_context():
+def get_context(project_id: int, db: Session = Depends(get_session)):
+    from src.services.project_service import get_project
+    
+    project = get_project(project_id, db)
+    
     return ProjectContextResponse(
-        project_name=os.getenv("PROJECT_NAME", "Headless PM"),
-        shared_path=os.getenv("SHARED_PATH", "./shared"),
-        instructions_path=os.getenv("INSTRUCTIONS_PATH", "./agent_instructions"),
-        project_docs_path=os.getenv("PROJECT_DOCS_PATH", "./docs"),
+        project_id=project.id,
+        project_name=project.name,
+        shared_path=project.shared_path,
+        instructions_path=project.instructions_path,
+        project_docs_path=project.project_docs_path,
+        code_guidelines_path=project.code_guidelines_path,
         database_type="sqlite" if os.getenv("DATABASE_URL", "").startswith("sqlite") else "mysql"
     )
 
@@ -144,13 +210,14 @@ def create_task_endpoint(request: TaskCreateRequest, agent_id: str, db: Session 
 
 @router.get("/tasks", response_model=List[TaskResponse],
     summary="List all tasks",
-    description="Get all tasks with optional filtering by status and role")
+    description="Get all tasks with optional filtering by status, role, and project")
 def list_tasks_endpoint(
     status: Optional[TaskStatus] = None,
     role: Optional[AgentRole] = None,
+    project_id: Optional[int] = None,
     db: Session = Depends(get_session)
 ):
-    return list_tasks(status, role, db)
+    return list_tasks(status, role, db, project_id)
 
 
 @router.get("/tasks/next", response_model=Optional[TaskResponse],
@@ -213,6 +280,18 @@ def update_task_status_endpoint(task_id: int, request: TaskStatusUpdateRequest,
     return update_task_status(task_id, request, agent_id, db)
 
 
+@router.post("/tasks/{task_id}/assign", response_model=TaskResponse,
+    summary="Assign task to agent (Project PM only)",
+    description="Assign a specific task to a specific agent. Only Project PMs can perform this action.")
+def assign_task_endpoint(
+    task_id: int,
+    target_agent_id: str,
+    assigner_agent_id: str,
+    db: Session = Depends(get_session)
+):
+    return assign_task_to_agent(task_id, target_agent_id, assigner_agent_id, db)
+
+
 @router.post("/tasks/{task_id}/comment",
     summary="Add comment to task",
     description="Add a comment during evaluation phase with @mention detection")
@@ -234,3 +313,138 @@ def delete_task_endpoint(task_id: int, agent_id: str, db: Session = Depends(get_
     description="Get recent task status changes across the project")
 def get_changelog(limit: int = 50, db: Session = Depends(get_session)):
     return get_recent_changelog(limit, db)
+
+
+# Project endpoints
+@router.get("/projects", 
+    summary="List all projects",
+    description="Get a list of all projects in the system")
+def list_projects(db: Session = Depends(get_session)):
+    from src.services.project_service import list_all_projects
+    return list_all_projects(db)
+
+
+# ========================================
+# PUBLIC ENDPOINTS (No authentication required)
+# ========================================
+
+# Health endpoint (no authentication required)
+@public_router.get("/health", tags=["Health"],
+    summary="API Health Check",
+    description="Check the health status of the API service")
+def api_health_check():
+    """Health check endpoint for the API service"""
+    from src.models.database import get_session
+    from sqlmodel import select
+    from src.models.models import Agent
+    from datetime import datetime
+    
+    try:
+        # Test database connection
+        db = next(get_session())
+        db.exec(select(Agent).limit(1))
+        db.close()
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "service": "headless-pm-api",
+        "version": "1.0.0",
+        "database": db_status,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+# Read-only agent endpoints
+@public_router.get("/agents", response_model=List[AgentResponse],
+    summary="List all agents (Public)", 
+    description="Get a list of all registered agents, optionally filtered by project")
+def list_agents_public(project_id: Optional[int] = None, db: Session = Depends(get_db_public)):
+    return list_all_agents(db, project_id)
+
+
+@public_router.get("/context/{project_id}", response_model=ProjectContextResponse,
+    summary="Get project context (Public)",
+    description="Get project context information including directory paths and configuration")
+def get_context_public(project_id: int, db: Session = Depends(get_db_public)):
+    from src.services.project_service import get_project
+    
+    project = get_project(project_id, db)
+    
+    return ProjectContextResponse(
+        project_id=project.id,
+        project_name=project.name,
+        shared_path=project.shared_path,
+        instructions_path=project.instructions_path,
+        project_docs_path=project.project_docs_path,
+        code_guidelines_path=project.code_guidelines_path,
+        database_type="sqlite" if os.getenv("DATABASE_URL", "").startswith("sqlite") else "mysql"
+    )
+
+
+# Read-only epic endpoints
+@public_router.get("/epics", response_model=List[EpicResponse],
+    summary="List all epics (Public)",
+    description="Get a list of all epics")
+def list_epics_public(db: Session = Depends(get_db_public)):
+    return list_epics(db)
+
+
+@public_router.get("/features/{epic_id}", response_model=List[FeatureResponse],
+    summary="List features for epic (Public)",
+    description="Get all features for a specific epic")
+def list_features_public(epic_id: int, db: Session = Depends(get_db_public)):
+    return list_features_for_epic(epic_id, db)
+
+
+# Read-only task endpoints
+@public_router.get("/tasks", response_model=List[TaskResponse],
+    summary="List all tasks (Public)",
+    description="Get a list of all tasks, optionally filtered by status, role, or project")
+def list_tasks_public(
+    status: Optional[TaskStatus] = None,
+    role: Optional[AgentRole] = None,
+    project_id: Optional[int] = None,
+    limit: Optional[int] = None,
+    db: Session = Depends(get_db_public)
+):
+    return list_tasks(status, role, db, project_id, limit)
+
+
+@public_router.get("/tasks/next", response_model=Optional[TaskResponse],
+    summary="Get next available task (Public)",
+    description="Get the next available task for a specific agent role and skill level")
+def get_next_task_public(role: AgentRole, skill_level: DifficultyLevel,
+                  agent_id: str, project_id: Optional[int] = None,
+                  db: Session = Depends(get_db_public)) -> Optional[TaskResponse]:
+    from src.services.task_service import get_next_task_for_agent
+    from src.models.models import Agent
+    
+    # Create a mock agent for the query
+    agent = Agent(
+        agent_id=agent_id,
+        role=role,
+        skill_level=skill_level,
+        project_id=project_id or 1,
+        connection_type="mcp"
+    )
+    
+    return get_next_task_for_agent(agent, db)
+
+
+@public_router.get("/changelog", response_model=List[ChangelogResponse],
+    summary="Get recent changelog (Public)",
+    description="Get recent task status changes and activity log")
+def get_changelog_public(limit: int = 50, db: Session = Depends(get_db_public)):
+    return get_recent_changelog(limit, db)
+
+
+# Read-only project endpoints
+@public_router.get("/projects", 
+    summary="List all projects (Public)",
+    description="Get a list of all projects in the system")
+def list_projects_public(db: Session = Depends(get_db_public)):
+    from src.services.project_service import list_all_projects
+    return list_all_projects(db)

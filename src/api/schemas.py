@@ -1,18 +1,65 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, validator
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 from datetime import datetime
-from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType, TaskType
+from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType, TaskType, AgentStatus
 from src.models.document_enums import DocumentType, ServiceStatus
 
 if TYPE_CHECKING:
     from typing import ForwardRef
 
 # Request schemas
+class ProjectCreateRequest(BaseModel):
+    name: str = Field(..., description="Unique project name")
+    description: str = Field(..., description="Project description")
+    shared_path: str = Field(..., description="Path to shared files directory")
+    instructions_path: str = Field(..., description="Path to agent instructions")
+    project_docs_path: str = Field(..., description="Path to project documentation")
+    code_guidelines_path: Optional[str] = Field(None, description="Path to code guidelines")
+
+class ProjectUpdateRequest(BaseModel):
+    description: Optional[str] = Field(None, description="Updated project description")
+    shared_path: Optional[str] = Field(None, description="Updated shared files path")
+    instructions_path: Optional[str] = Field(None, description="Updated instructions path")
+    project_docs_path: Optional[str] = Field(None, description="Updated documentation path")
+    code_guidelines_path: Optional[str] = Field(None, description="Updated code guidelines path")
+
 class AgentRegisterRequest(BaseModel):
     agent_id: str = Field(..., description="Unique agent identifier (e.g., 'frontend_dev_senior_001')")
+    project_id: int = Field(..., description="Project ID to register agent for")
     role: AgentRole = Field(..., description="Agent's role in the project")
     level: DifficultyLevel = Field(..., description="Agent's skill level")
     connection_type: Optional[ConnectionType] = Field(ConnectionType.CLIENT, description="Connection type (MCP or Client)")
+    
+    @validator('role')
+    def validate_role(cls, v):
+        if isinstance(v, str):
+            # Handle legacy 'pm' role
+            if v.lower() == 'pm':
+                return AgentRole.PROJECT_PM
+            # Normalize case
+            try:
+                return AgentRole(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid agent role: {v}. Valid roles: {[r.value for r in AgentRole]}")
+        return v
+    
+    @validator('level')
+    def validate_level(cls, v):
+        if isinstance(v, str):
+            try:
+                return DifficultyLevel(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid difficulty level: {v}. Valid levels: {[l.value for l in DifficultyLevel]}")
+        return v
+    
+    @validator('connection_type')
+    def validate_connection_type(cls, v):
+        if isinstance(v, str):
+            try:
+                return ConnectionType(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid connection type: {v}. Valid types: {[c.value for c in ConnectionType]}")
+        return v
 
 class EpicCreateRequest(BaseModel):
     name: str = Field(..., description="Epic name")
@@ -31,18 +78,78 @@ class TaskCreateRequest(BaseModel):
     difficulty: DifficultyLevel = Field(..., description="Task difficulty level")
     complexity: TaskComplexity = Field(TaskComplexity.MAJOR, description="Task complexity (minor = commit to main, major = requires PR)")
     branch: str = Field(..., description="Git branch for this task")
+    
+    @validator('target_role')
+    def validate_target_role(cls, v):
+        if isinstance(v, str):
+            # Handle legacy 'pm' role
+            if v.lower() == 'pm':
+                return AgentRole.PROJECT_PM
+            try:
+                return AgentRole(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid target role: {v}. Valid roles: {[r.value for r in AgentRole]}")
+        return v
+    
+    @validator('difficulty')
+    def validate_difficulty(cls, v):
+        if isinstance(v, str):
+            try:
+                return DifficultyLevel(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid difficulty level: {v}. Valid levels: {[l.value for l in DifficultyLevel]}")
+        return v
+    
+    @validator('complexity')
+    def validate_complexity(cls, v):
+        if isinstance(v, str):
+            try:
+                return TaskComplexity(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid task complexity: {v}. Valid complexities: {[c.value for c in TaskComplexity]}")
+        return v
 
 class TaskStatusUpdateRequest(BaseModel):
     status: TaskStatus = Field(..., description="New status for the task")
     notes: Optional[str] = Field(None, description="Optional notes about the status change")
+    
+    @validator('status')
+    def validate_status(cls, v):
+        if isinstance(v, str):
+            # Handle legacy status values
+            if v.lower() in ['evaluation', 'approved']:
+                return TaskStatus.QA_DONE if v.lower() == 'evaluation' else TaskStatus.COMMITTED
+            try:
+                return TaskStatus(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid task status: {v}. Valid statuses: {[s.value for s in TaskStatus]}")
+        return v
 
 class TaskCommentRequest(BaseModel):
     comment: str = Field(..., description="Comment to add to the task")
 
 # Response schemas
+class ProjectResponse(BaseModel):
+    id: int
+    name: str
+    description: str
+    shared_path: str
+    instructions_path: str
+    project_docs_path: str
+    code_guidelines_path: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    agent_count: Optional[int] = 0
+    epic_count: Optional[int] = 0
+    task_count: Optional[int] = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+
 class AgentResponse(BaseModel):
     id: int
     agent_id: str
+    project_id: int
+    project_name: Optional[str] = None
     role: AgentRole
     level: DifficultyLevel
     connection_type: Optional[ConnectionType]
@@ -57,11 +164,24 @@ class AgentRegistrationResponse(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
+class AgentAvailabilityResponse(BaseModel):
+    agent_id: str
+    project_id: int
+    is_available: bool
+    current_task_id: Optional[int] = None
+    current_task_title: Optional[str] = None
+    last_activity: datetime
+    status: AgentStatus
+    
+    model_config = ConfigDict(from_attributes=True)
+
 class ProjectContextResponse(BaseModel):
+    project_id: int
     project_name: str
     shared_path: str
     instructions_path: str
     project_docs_path: str
+    code_guidelines_path: Optional[str] = None
     database_type: str
 
 class TaskResponse(BaseModel):
@@ -137,6 +257,15 @@ class DocumentCreateRequest(BaseModel):
     content: str = Field(..., description="Document content (Markdown supported)")
     meta_data: Optional[Dict[str, Any]] = Field(None, description="Additional meta_data")
     expires_at: Optional[datetime] = Field(None, description="Auto-cleanup expiration time")
+    
+    @validator('doc_type')
+    def validate_doc_type(cls, v):
+        if isinstance(v, str):
+            try:
+                return DocumentType(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid document type: {v}. Valid types: {[t.value for t in DocumentType]}")
+        return v
 
 class DocumentUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, description="Updated title", max_length=200)

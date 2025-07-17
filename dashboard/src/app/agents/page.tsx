@@ -6,6 +6,8 @@ import { AgentGrid } from '@/components/agents/agent-grid';
 import { AgentStats } from '@/components/agents/agent-stats';
 import { AgentActivityFeed } from '@/components/agents/agent-activity-feed-real';
 import { AgentFilters, AgentFilters as AgentFiltersType } from '@/components/agents/agent-filters';
+import { AgentAvailabilityDashboard } from '@/components/agents/agent-availability-dashboard';
+import { useProjectContext } from '@/lib/contexts/project-context';
 
 export default function AgentsPage() {
   const [filters, setFilters] = useState<AgentFiltersType>({
@@ -15,6 +17,8 @@ export default function AgentsPage() {
     connectionType: 'all',
     status: 'all'
   });
+  
+  const { currentProject } = useProjectContext();
 
   return (
     <PageLayout>
@@ -25,14 +29,19 @@ export default function AgentsPage() {
 
         <AgentStats />
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-1">
+        {/* Agent Availability Dashboard for Project PMs */}
+        {currentProject && (
+          <AgentAvailabilityDashboard projectId={currentProject.id} />
+        )}
+        
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          <div className="xl:col-span-3">
             <AgentFilters onFiltersChange={setFilters} />
           </div>
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-6">
             <AgentGrid filters={filters} />
           </div>
-          <div className="lg:col-span-1">
+          <div className="xl:col-span-3">
             <AgentActivityFeed />
           </div>
         </div>

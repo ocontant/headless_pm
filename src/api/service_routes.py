@@ -17,11 +17,15 @@ router = APIRouter(prefix="/api/v1/services", tags=["Services"], dependencies=[D
 def register_service(
     request: ServiceRegisterRequest,
     agent_id: str = Query(..., description="Agent ID of the service owner"),
+    project_id: int = Query(..., description="Project ID for the service"),
     db: Session = Depends(get_session)
 ):
-    # Check if service already exists
+    # Check if service already exists in this project
     service = db.exec(
-        select(Service).where(Service.service_name == request.service_name)
+        select(Service).where(
+            Service.service_name == request.service_name,
+            Service.project_id == project_id
+        )
     ).first()
     
     if service:
@@ -36,6 +40,7 @@ def register_service(
     else:
         # Create new service
         service = Service(
+            project_id=project_id,
             service_name=request.service_name,
             owner_agent_id=agent_id,
             ping_url=request.ping_url,
@@ -54,8 +59,15 @@ def register_service(
 @router.get("", response_model=List[ServiceResponse],
     summary="List all services",
     description="Get list of all registered services")
-def list_services(db: Session = Depends(get_session)):
-    services = db.exec(select(Service).order_by(Service.service_name)).all()
+def list_services(
+    project_id: int = Query(..., description="Project ID to filter services"),
+    db: Session = Depends(get_session)
+):
+    services = db.exec(
+        select(Service)
+        .where(Service.project_id == project_id)
+        .order_by(Service.service_name)
+    ).all()
     return services
 
 @router.post("/{service_name}/heartbeat", response_model=ServiceResponse,
@@ -64,10 +76,14 @@ def list_services(db: Session = Depends(get_session)):
 def service_heartbeat(
     service_name: str,
     agent_id: str = Query(..., description="Agent ID sending the heartbeat"),
+    project_id: int = Query(..., description="Project ID for the service"),
     db: Session = Depends(get_session)
 ):
     service = db.exec(
-        select(Service).where(Service.service_name == service_name)
+        select(Service).where(
+            Service.service_name == service_name,
+            Service.project_id == project_id
+        )
     ).first()
     
     if not service:
@@ -97,10 +113,14 @@ def service_heartbeat(
 def unregister_service(
     service_name: str,
     agent_id: str = Query(..., description="Agent ID requesting deletion"),
+    project_id: int = Query(..., description="Project ID for the service"),
     db: Session = Depends(get_session)
 ):
     service = db.exec(
-        select(Service).where(Service.service_name == service_name)
+        select(Service).where(
+            Service.service_name == service_name,
+            Service.project_id == project_id
+        )
     ).first()
     
     if not service:

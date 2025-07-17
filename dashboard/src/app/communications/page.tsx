@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { PageLayout } from '@/components/layout/page-layout';
 import { useDocuments, useMentions, useMentionsByRole, useAgents, useCreateDocument } from '@/lib/hooks/useApi';
+import { useProjectContext } from '@/lib/contexts/project-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -26,20 +27,22 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { DocumentDetailModal } from '@/components/documents/document-detail-modal';
 
 export default function CommunicationsPage() {
+  const { currentProject } = useProjectContext();
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [newDocumentTitle, setNewDocumentTitle] = useState('');
   const [newDocumentContent, setNewDocumentContent] = useState('');
-  const [newDocumentType, setNewDocumentType] = useState<DocumentType>('update');
+  const [newDocumentType, setNewDocumentType] = useState<DocumentType>(DocumentType.Update);
   const [isBroadcast, setIsBroadcast] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [documentSearch, setDocumentSearch] = useState('');
   const [mentionSearch, setMentionSearch] = useState('');
   
-  const { data: documents, isLoading: documentsLoading } = useDocuments();
+  // Only fetch data if we have a project selected
+  const { data: documents, isLoading: documentsLoading } = useDocuments(undefined, undefined, !!currentProject);
   const { data: agents, isLoading: agentsLoading } = useAgents();
-  const { data: mentions, isLoading: mentionsLoading } = useMentionsByRole(selectedRole || undefined, false); // Use role-based filtering
+  const { data: mentions, isLoading: mentionsLoading } = useMentionsByRole(selectedRole || undefined, false, !!currentProject);
   const createDocumentMutation = useCreateDocument();
   
   // Get unique roles from agents
@@ -126,10 +129,10 @@ export default function CommunicationsPage() {
 
   const getDocumentTypeColor = (type: DocumentType) => {
     switch (type) {
-      case 'update': return 'bg-blue-100 text-blue-800';
-      case 'question': return 'bg-yellow-100 text-yellow-800';
-      case 'issue': return 'bg-red-100 text-red-800';
-      case 'note': return 'bg-gray-100 text-gray-800';
+      case DocumentType.Update: return 'bg-blue-100 text-blue-800';
+      case DocumentType.Question: return 'bg-yellow-100 text-yellow-800';
+      case DocumentType.Issue: return 'bg-red-100 text-red-800';
+      case DocumentType.Note: return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -141,12 +144,29 @@ export default function CommunicationsPage() {
         <div>
           <h1 className="text-3xl font-bold">Communications</h1>
           <p className="text-muted-foreground mt-1">
-            Team documents, mentions, and collaboration
+            {currentProject 
+              ? `Team documents, mentions, and collaboration for ${currentProject.name}`
+              : 'Select a project to view team communications'
+            }
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {!currentProject ? (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Select a Project</h3>
+                <p className="text-muted-foreground">
+                  Please select a project from the navigation bar to view team communications, documents, and mentions for that project.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsWidget
             title="Total Documents"
             value={totalDocuments}
@@ -377,10 +397,10 @@ export default function CommunicationsPage() {
                       onChange={(e) => setNewDocumentType(e.target.value as DocumentType)}
                       className="w-full px-3 py-2 border rounded-md mt-1"
                     >
-                      <option value="update">Update</option>
-                      <option value="question">Question</option>
-                      <option value="issue">Issue</option>
-                      <option value="note">Note</option>
+                      <option value={DocumentType.Update}>Update</option>
+                      <option value={DocumentType.Question}>Question</option>
+                      <option value={DocumentType.Issue}>Issue</option>
+                      <option value={DocumentType.Note}>Note</option>
                     </select>
                   </div>
                 </div>
@@ -440,14 +460,16 @@ export default function CommunicationsPage() {
           </TabsContent>
         </Tabs>
 
-        <DocumentDetailModal
-          documentId={selectedDocumentId}
-          isOpen={isDocumentModalOpen}
-          onClose={() => {
-            setIsDocumentModalOpen(false);
-            setSelectedDocumentId(null);
-          }}
-        />
+            <DocumentDetailModal
+              documentId={selectedDocumentId}
+              isOpen={isDocumentModalOpen}
+              onClose={() => {
+                setIsDocumentModalOpen(false);
+                setSelectedDocumentId(null);
+              }}
+            />
+          </>
+        )}
       </div>
     </PageLayout>
   );

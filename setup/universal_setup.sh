@@ -66,6 +66,94 @@ fi
 
 echo ""
 echo "==================================="
+echo "Database Setup"
+echo "==================================="
+
+# Initialize database
+echo "Initializing database..."
+python -m src.cli.main init
+
+# Check if we need to run migrations
+echo "Checking for database migrations..."
+if python -c "
+import sys
+sys.path.append('.')
+from src.models.database import engine
+from sqlalchemy import text
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text('SELECT COUNT(*) FROM project'))
+        print('Projects table exists')
+        sys.exit(0)
+except:
+    print('Projects table missing - migration needed')
+    sys.exit(1)
+" 2>/dev/null; then
+    echo "✅ Database schema is up to date"
+else
+    echo "Running project support migration..."
+    python migrations/add_project_support.py
+    echo "✅ Migration completed successfully"
+fi
+
+# Create default project if none exists
+echo "Checking for default project..."
+if python -c "
+import sys
+sys.path.append('.')
+from src.models.database import get_session
+from src.models.models import Project
+from sqlmodel import select
+try:
+    db = next(get_session())
+    projects = db.exec(select(Project)).all()
+    if len(projects) == 0:
+        print('No projects found - creating default')
+        sys.exit(1)
+    else:
+        print(f'Found {len(projects)} project(s)')
+        sys.exit(0)
+except Exception as e:
+    print(f'Error checking projects: {e}')
+    sys.exit(1)
+" 2>/dev/null; then
+    echo "✅ Projects exist in database"
+else
+    echo "Creating default project..."
+    python -c "
+import sys
+sys.path.append('.')
+from src.models.database import get_session
+from src.models.models import Project
+import os
+from datetime import datetime
+
+try:
+    db = next(get_session())
+    
+    # Create default project
+    default_project = Project(
+        name='Default',
+        description='Default project for Headless PM',
+        shared_path=os.getenv('SHARED_PATH', './shared'),
+        instructions_path=os.getenv('INSTRUCTIONS_PATH', './agent_instructions'),
+        project_docs_path=os.getenv('PROJECT_DOCS_PATH', './docs')
+    )
+    
+    db.add(default_project)
+    db.commit()
+    db.refresh(default_project)
+    
+    print(f'✅ Created default project (ID: {default_project.id})')
+    
+except Exception as e:
+    print(f'❌ Error creating default project: {e}')
+    sys.exit(1)
+"
+fi
+
+echo ""
+echo "==================================="
 echo "Setup complete!"
 echo "==================================="
 echo ""
@@ -80,3 +168,8 @@ echo "  ./start.sh"
 echo ""
 echo "To run tests:"
 echo "  python -m pytest tests/"
+echo ""
+echo "Multi-Project Features:"
+echo "  List projects:    ./agents/client/headless_pm_client.py projects list"
+echo "  Create project:   ./agents/client/headless_pm_client.py projects create --name 'My Project' --description 'Description'"
+echo "  Register agent:   ./agents/client/headless_pm_client.py register --agent-id 'dev_001' --project-id 1 --role backend_dev --level senior"

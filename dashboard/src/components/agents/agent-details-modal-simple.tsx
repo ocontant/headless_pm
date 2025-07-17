@@ -19,7 +19,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useApi } from '@/lib/hooks/useApi';
 
 interface AgentDetailsModalProps {
-  agent: Agent | null;
+  agent: Agent;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -78,7 +78,7 @@ export function AgentDetailsModal({ agent, isOpen, onClose }: AgentDetailsModalP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center ${ROLE_COLORS[agent.role]}`}>
-              {agent.name ? agent.name.charAt(0).toUpperCase() : agent.id.charAt(0).toUpperCase()}
+              {agent.name ? agent.name.charAt(0).toUpperCase() : String(agent.id).charAt(0).toUpperCase()}
             </div>
             <div>
               <h2 className="text-2xl font-bold">{agent.name || agent.id}</h2>
@@ -185,6 +185,10 @@ export function AgentDetailsModal({ agent, isOpen, onClose }: AgentDetailsModalP
                     <div className="font-medium">{agent.connection_type}</div>
                   </div>
                   <div>
+                    <span className="text-muted-foreground">Project:</span>
+                    <div className="font-medium">{agent.project_name || `Project ID: ${agent.project_id}`}</div>
+                  </div>
+                  <div>
                     <span className="text-muted-foreground">Last Seen:</span>
                     <div className="font-medium">
                       {agent.last_seen ? 
@@ -196,7 +200,7 @@ export function AgentDetailsModal({ agent, isOpen, onClose }: AgentDetailsModalP
                   <div>
                     <span className="text-muted-foreground">Created:</span>
                     <div className="font-medium">
-                      {formatDistanceToNow(new Date(agent.created_at), { addSuffix: true })}
+                      {agent.created_at ? formatDistanceToNow(new Date(agent.created_at), { addSuffix: true }) : 'Unknown'}
                     </div>
                   </div>
                 </div>
@@ -244,7 +248,7 @@ export function AgentDetailsModal({ agent, isOpen, onClose }: AgentDetailsModalP
                       <div key={doc.id} className="p-2 border rounded">
                         <p className="font-medium text-sm">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {doc.type} • {formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}
+                          {doc.type} • {doc.created_at ? formatDistanceToNow(new Date(doc.created_at), { addSuffix: true }) : 'Unknown'}
                         </p>
                       </div>
                     ))}

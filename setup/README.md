@@ -57,7 +57,7 @@ After setup, a `.env` file will be created from `env-example`. Edit it with your
 
 ```env
 # API Configuration
-API_KEY_HEADLESS_PM=your_api_key
+API_KEY=your_api_key
 SERVICE_PORT=6969
 MCP_PORT=6968
 DASHBOARD_PORT=3001

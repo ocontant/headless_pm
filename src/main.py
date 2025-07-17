@@ -9,7 +9,8 @@ from contextlib import asynccontextmanager
 load_dotenv()
 
 from src.models.database import create_db_and_tables
-from src.api.routes import router
+from src.api.routes import router, public_router, health_router
+from src.api.project_routes import router as project_router
 from src.api.document_routes import router as document_router
 from src.api.service_routes import router as service_router
 from src.api.mention_routes import router as mention_router
@@ -45,7 +46,10 @@ app.add_middleware(
 )
 
 # Include routes
+app.include_router(public_router)  # Public endpoints (no auth required)
+app.include_router(health_router)  # Health endpoints (no auth required)
 app.include_router(router)
+app.include_router(project_router)
 app.include_router(document_router)
 app.include_router(service_router)
 app.include_router(mention_router)
@@ -62,7 +66,8 @@ def read_root():
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    """Enhanced health check endpoint with database status"""
+    """Enhanced health check endpoint with database status and PID"""
+    import os
     from src.models.database import get_session
     from sqlmodel import select
     from src.models.models import Agent
@@ -81,8 +86,10 @@ def health_check():
         "status": "healthy" if db_status == "healthy" else "degraded",
         "service": "headless-pm-api",
         "version": "1.0.0",
+        "pid": os.getpid(),
         "database": db_status,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
+        "depends_on": []  # API server is the core service with no dependencies
     }
 
 @app.get("/status", tags=["Health"])
@@ -90,13 +97,14 @@ def status_check():
     """Detailed status endpoint with system metrics"""
     from src.models.database import get_session
     from sqlmodel import select, func
-    from src.models.models import Agent, Task, Document, Service
+    from src.models.models import Agent, Task, Document, Service, Project
     from datetime import datetime, timedelta
     
     try:
         db = next(get_session())
         
         # Get counts
+        project_count = db.exec(select(func.count(Project.id))).first()
         agent_count = db.exec(select(func.count(Agent.id))).first()
         task_count = db.exec(select(func.count(Task.id))).first()
         document_count = db.exec(select(func.count(Document.id))).first()
@@ -114,6 +122,7 @@ def status_check():
             "service": "headless-pm-api",
             "version": "1.0.0",
             "metrics": {
+                "total_projects": project_count,
                 "total_agents": agent_count,
                 "active_agents": active_agents,
                 "total_tasks": task_count,

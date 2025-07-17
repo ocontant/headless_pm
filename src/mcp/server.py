@@ -38,13 +38,24 @@ logger = logging.getLogger("headless-pm-mcp")
 class HeadlessPMMCPServer:
     """MCP Server for Headless PM integration."""
 
-    def __init__(self, base_url: str = "http://localhost:6969"):
+    def __init__(self, base_url: str = "http://localhost:6969", api_key: Optional[str] = None):
         self.base_url = base_url.rstrip('/')
+        self.api_key = api_key
         self.server = Server("headless-pm")
-        self.client = httpx.AsyncClient(timeout=30.0)
+        
+        # Setup HTTP client with API key headers (for write operations)
+        headers = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        self.client = httpx.AsyncClient(timeout=30.0, headers=headers)
+        
+        # Setup public HTTP client (for read operations, no auth required)
+        self.public_client = httpx.AsyncClient(timeout=30.0)
+        
         self.agent_id: Optional[str] = None
         self.agent_role: Optional[str] = None
         self.agent_skill_level: Optional[str] = None
+        self.current_project_id: Optional[int] = None  # Track current project
         self.token_tracker = TokenTracker()
 
         # Register handlers
@@ -59,8 +70,33 @@ class HeadlessPMMCPServer:
             return ListToolsResult(
                 tools=[
                     Tool(
+                        name="switch_project",
+                        description="Switch to a different project context",
+                        inputSchema={
+                            "type": "object",
+                            "properties": {
+                                "project_id": {
+                                    "type": "integer",
+                                    "description": "ID of the project to switch to"
+                                },
+                                "project_name": {
+                                    "type": "string",
+                                    "description": "Name of the project to switch to (alternative to ID)"
+                                }
+                            }
+                        }
+                    ),
+                    Tool(
+                        name="list_projects",
+                        description="List all available projects",
+                        inputSchema={
+                            "type": "object",
+                            "properties": {}
+                        }
+                    ),
+                    Tool(
                         name="register_agent",
-                        description="Register agent with Headless PM system",
+                        description="Register agent with Headless PM system in the current project",
                         inputSchema={
                             "type": "object",
                             "properties": {
@@ -78,6 +114,10 @@ class HeadlessPMMCPServer:
                                     "description": "Agent skill level",
                                     "enum": ["junior", "senior", "principal"],
                                     "default": "senior"
+                                },
+                                "project_id": {
+                                    "type": "integer",
+                                    "description": "Project ID to register in (optional, uses current project if not specified)"
                                 }
                             },
                             "required": ["agent_id", "role"]
@@ -319,6 +359,12 @@ class HeadlessPMMCPServer:
                         name="Project Context",
                         description="Current project configuration and context",
                         mimeType="application/json"
+                    ),
+                    Resource(
+                        uri="headless-pm://guidelines/code",
+                        name="Code Guidelines",
+                        description="Project code guidelines and standards",
+                        mimeType="text/markdown"
                     )
                 ]
             )
@@ -330,12 +376,12 @@ class HeadlessPMMCPServer:
 
             try:
                 if uri == "headless-pm://tasks/list":
-                    response = await self.client.get(f"{self.base_url}/api/v1/tasks")
+                    response = await self.public_client.get(f"{self.base_url}/api/v1/public/tasks")
                     data = response.json()
                     content = json.dumps(data, indent=2)
 
                 elif uri == "headless-pm://agents/list":
-                    response = await self.client.get(f"{self.base_url}/api/v1/agents")
+                    response = await self.public_client.get(f"{self.base_url}/api/v1/public/agents")
                     data = response.json()
                     content = json.dumps(data, indent=2)
 
@@ -355,9 +401,30 @@ class HeadlessPMMCPServer:
                     content = json.dumps(data, indent=2)
 
                 elif uri == "headless-pm://context/project":
-                    response = await self.client.get(f"{self.base_url}/api/v1/context")
+                    project_id = self.current_project_id or 1  # Default to project 1
+                    response = await self.public_client.get(f"{self.base_url}/api/v1/public/context/{project_id}")
                     data = response.json()
                     content = json.dumps(data, indent=2)
+                elif uri == "headless-pm://guidelines/code":
+                    project_id = self.current_project_id or 1  # Default to project 1
+                    # Get project context to find code guidelines path
+                    response = await self.public_client.get(f"{self.base_url}/api/v1/public/context/{project_id}")
+                    context = response.json()
+                    guidelines_path = context.get("code_guidelines_path")
+                    
+                    if not guidelines_path:
+                        content = "# Code Guidelines\n\nNo code guidelines have been configured for this project yet.\n\nTo add code guidelines:\n1. Create a markdown file with your coding standards\n2. Update the project configuration to set the code_guidelines_path"
+                    else:
+                        try:
+                            # Try to read the guidelines file
+                            import os
+                            if os.path.exists(guidelines_path):
+                                with open(guidelines_path, 'r', encoding='utf-8') as f:
+                                    content = f.read()
+                            else:
+                                content = f"# Code Guidelines\n\nCode guidelines file not found at: {guidelines_path}\n\nPlease ensure the file exists and the path is correct."
+                        except Exception as e:
+                            content = f"# Code Guidelines\n\nError reading guidelines file: {str(e)}\n\nPath: {guidelines_path}"
 
                 else:
                     raise ValueError(f"Unknown resource URI: {uri}")
@@ -388,7 +455,11 @@ class HeadlessPMMCPServer:
             try:
                 # Track request tokens
                 self.token_tracker.track_request({"tool": request.name, "args": request.arguments})
-                if request.name == "register_agent":
+                if request.name == "switch_project":
+                    return await self._switch_project(request.arguments)
+                elif request.name == "list_projects":
+                    return await self._list_projects(request.arguments)
+                elif request.name == "register_agent":
                     return await self._register_agent(request.arguments)
                 elif request.name == "get_project_context":
                     return await self._get_project_context(request.arguments)
@@ -429,8 +500,65 @@ class HeadlessPMMCPServer:
                 self.token_tracker.track_response({"error": str(e)})
                 return result
 
+    async def _switch_project(self, args: Dict[str, Any]) -> CallToolResult:
+        """Switch to a different project."""
+        project_id = args.get("project_id")
+        project_name = args.get("project_name")
+        
+        if not project_id and not project_name:
+            raise ValueError("Either project_id or project_name must be provided")
+        
+        # If project_name provided, we need to look up the ID
+        if project_name and not project_id:
+            response = await self.public_client.get(f"{self.base_url}/api/v1/public/projects")
+            projects = response.json()
+            for project in projects:
+                if project["name"].lower() == project_name.lower():
+                    project_id = project["id"]
+                    break
+            if not project_id:
+                raise ValueError(f"Project '{project_name}' not found")
+        
+        self.current_project_id = project_id
+        
+        # Get project details
+        response = await self.client.get(f"{self.base_url}/api/v1/context/{project_id}")
+        project_info = response.json()
+        
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text",
+                    text=f"Switched to project: {project_info['project_name']} (ID: {project_id})"
+                )
+            ]
+        )
+    
+    async def _list_projects(self, args: Dict[str, Any]) -> CallToolResult:
+        """List all available projects."""
+        response = await self.public_client.get(f"{self.base_url}/api/v1/public/projects")
+        projects = response.json()
+        
+        project_list = "Available projects:\n"
+        for project in projects:
+            current = " (current)" if project["id"] == self.current_project_id else ""
+            project_list += f"- {project['name']} (ID: {project['id']}){current}\n"
+        
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text",
+                    text=project_list
+                )
+            ]
+        )
+
     async def _register_agent(self, args: Dict[str, Any]) -> CallToolResult:
         """Register agent with the system."""
+        project_id = args.get("project_id", self.current_project_id)
+        if not project_id:
+            raise ValueError("No project selected. Use 'switch_project' first or provide project_id")
+        
         self.agent_id = args["agent_id"]
         self.agent_role = args["role"]
         self.agent_skill_level = args.get("skill_level", "senior")
@@ -439,7 +567,8 @@ class HeadlessPMMCPServer:
             "agent_id": self.agent_id,
             "role": self.agent_role,
             "level": self.agent_skill_level,  # Changed from skill_level to level
-            "connection_type": "mcp"  # Set connection type to MCP
+            "connection_type": "mcp",  # Set connection type to MCP
+            "project_id": project_id
         }
 
         response = await self.client.post(f"{self.base_url}/api/v1/register", json=data)
@@ -449,7 +578,7 @@ class HeadlessPMMCPServer:
             content=[
                 TextContent(
                     type="text",
-                    text=f"Agent {self.agent_id} registered as {self.agent_role} ({self.agent_skill_level})"
+                    text=f"Agent {self.agent_id} registered as {self.agent_role} ({self.agent_skill_level}) in project ID {project_id}"
                 )
             ]
         )
@@ -460,7 +589,9 @@ class HeadlessPMMCPServer:
 
     async def _get_project_context(self, args: Dict[str, Any]) -> CallToolResult:
         """Get project context."""
-        response = await self.client.get(f"{self.base_url}/api/v1/context")
+        project_id = self.current_project_id or 1  # Default to project 1
+        
+        response = await self.public_client.get(f"{self.base_url}/api/v1/public/context/{project_id}")
         result = response.json()
 
         return CallToolResult(
@@ -476,10 +607,11 @@ class HeadlessPMMCPServer:
         """Get next available task."""
         params = {
             "role": args.get("role", self.agent_role),
-            "skill_level": args.get("skill_level", self.agent_skill_level)
+            "skill_level": args.get("skill_level", self.agent_skill_level),
+            "agent_id": self.agent_id
         }
 
-        response = await self.client.get(f"{self.base_url}/api/v1/tasks/next", params=params)
+        response = await self.public_client.get(f"{self.base_url}/api/v1/public/tasks/next", params=params)
         result = response.json()
 
         if not result:
@@ -719,13 +851,21 @@ async def main():
     import sys
     import os
 
-    # Get base URL from environment or command line args
-    base_url = os.getenv('HEADLESS_PM_URL', 'http://localhost:6969')
+    # Get configuration from environment
+    base_url = os.getenv('API_URL', os.getenv('HEADLESS_PM_URL', 'http://localhost:6969'))
+    api_key = os.getenv('API_KEY')
+    
+    # Command line args can override
     if len(sys.argv) > 1:
         base_url = sys.argv[1]
+    if len(sys.argv) > 2:
+        api_key = sys.argv[2]
 
     logger.info(f"Starting MCP server, connecting to API at {base_url}")
-    server = HeadlessPMMCPServer(base_url)
+    if api_key:
+        logger.info("Using API key authentication")
+    
+    server = HeadlessPMMCPServer(base_url, api_key)
     await server.run()
 
 

@@ -17,6 +17,6 @@ def pytest_configure(config):
     load_env_file()
     
     # Verify API key is loaded
-    api_key = os.getenv("API_KEY_HEADLESS_PM") or os.getenv("API_KEY") or os.getenv("HEADLESS_PM_API_KEY")
+    api_key = os.getenv("API_KEY")
     if not api_key:
-        raise ValueError("No API key found in environment. Please set API_KEY_HEADLESS_PM or configure .env file")
+        raise ValueError("No API key found in environment. Please set API_KEY or configure .env file")

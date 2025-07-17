@@ -30,7 +30,9 @@ const ROLE_COLORS = {
   [AgentRole.BackendDev]: 'bg-green-500 text-white',
   [AgentRole.QA]: 'bg-purple-500 text-white',
   [AgentRole.Architect]: 'bg-orange-500 text-white',
-  [AgentRole.PM]: 'bg-red-500 text-white'
+  [AgentRole.GlobalPM]: 'bg-red-500 text-white',
+  [AgentRole.ProjectPM]: 'bg-pink-500 text-white',
+  [AgentRole.PM]: 'bg-red-500 text-white' // Legacy role
 };
 
 const SKILL_COLORS = {
@@ -90,17 +92,17 @@ function AgentCard({ agent, onViewDetails }: AgentCardProps) {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Badge className={SKILL_COLORS[skillLevel]}>
-            <Zap className="h-3 w-3 mr-1" />
-            {skillLevel.toUpperCase()} {roleDisplayName.toUpperCase()}
+        <div className="flex flex-wrap gap-2">
+          <Badge className={`${SKILL_COLORS[skillLevel]} text-xs`}>
+            <Zap className="h-3 w-3 mr-1 shrink-0" />
+            <span className="truncate">{skillLevel} {roleDisplayName}</span>
           </Badge>
-          <Badge className={CONNECTION_COLORS[agent.connection_type]}>
+          <Badge className={`${CONNECTION_COLORS[agent.connection_type]} text-xs`}>
             {agent.connection_type === ConnectionType.MCP ? 
-              <BrainCircuit className="h-3 w-3 mr-1" /> : 
-              <Users className="h-3 w-3 mr-1" />
+              <BrainCircuit className="h-3 w-3 mr-1 shrink-0" /> : 
+              <Users className="h-3 w-3 mr-1 shrink-0" />
             }
-            {agent.connection_type.toUpperCase()}
+            <span className="truncate">{agent.connection_type}</span>
           </Badge>
         </div>
 
@@ -256,11 +258,13 @@ export function AgentGrid({ filters }: AgentGridProps) {
         </div>
       )}
 
-      <AgentDetailsModal 
-        agent={selectedAgent}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
+      {selectedAgent && (
+        <AgentDetailsModal 
+          agent={selectedAgent}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

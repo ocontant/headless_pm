@@ -31,6 +31,14 @@ Say: "Show me the next available task"
 - Register yourself based on your agent role
 - Register any services you manage (refer to service_responsibilities.md)
 
+### Code Guidelines Context (CRITICAL)
+**ALWAYS check project code guidelines before starting development work**:
+- Request the project context to get the code_guidelines_path
+- Read and follow the code style, architecture patterns, and best practices
+- Ensure your code adheres to established conventions
+- Reference guidelines when making technical decisions
+- Update guidelines if you establish new patterns (with team approval)
+
 ### Progress Reporting (CRITICAL)
 **YOU MUST PROACTIVELY REPORT YOUR PROGRESS**:
 - Create documents when starting/completing tasks

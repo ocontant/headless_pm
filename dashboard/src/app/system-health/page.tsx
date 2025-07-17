@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatsWidget } from '@/components/ui/stats-widget';
+import { ServiceHealthStatus } from '@/components/health/service-health-status';
 import { 
   Server, 
   Activity, 
@@ -26,44 +27,82 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 
 export default function HealthPage() {
-  const { data: services, isLoading: servicesLoading, refetch: refetchServices } = useServices();
-  const { data: agents, isLoading: agentsLoading, refetch: refetchAgents } = useAgents();
+  // Fetch services and agents - let the API calls handle project requirements internally
+  const { data: services, isLoading: servicesLoading, refetch: refetchServices, error: servicesError } = useServices();
+  const { data: agents, isLoading: agentsLoading, refetch: refetchAgents, error: agentsError } = useAgents();
 
   // Calculate health metrics
   const healthMetrics = useMemo(() => {
-    if (!services || !agents) return null;
+    // Check if we have data, are loading, or have errors
+    const isLoading = servicesLoading || agentsLoading;
+    const hasErrors = servicesError || agentsError;
+    const hasProjectData = services && agents;
+    
+    // If there are errors (likely "No project selected"), treat as no project
+    if (hasErrors || (!hasProjectData && !isLoading)) {
+      return {
+        hasProjectData: false,
+        isLoading: false, // Not loading if we have errors
+        hasErrors,
+        services: { total: 0, active: 0, inactive: 0, withPing: 0, healthScore: 0 },
+        agents: { total: 0, online: 0, recentlyActive: 0, offline: 0, healthScore: 0 },
+        overallHealthScore: 0,
+        servicesData: [],
+        agentsData: [],
+        onlineAgents: [],
+        recentlyActiveAgents: [],
+        offlineAgents: []
+      };
+    }
+    
+    // If we're still loading
+    if (isLoading) {
+      return {
+        hasProjectData: false,
+        isLoading: true,
+        hasErrors: false,
+        services: { total: 0, active: 0, inactive: 0, withPing: 0, healthScore: 0 },
+        agents: { total: 0, online: 0, recentlyActive: 0, offline: 0, healthScore: 0 },
+        overallHealthScore: 0,
+        servicesData: [],
+        agentsData: [],
+        onlineAgents: [],
+        recentlyActiveAgents: [],
+        offlineAgents: []
+      };
+    }
 
     const now = Date.now();
     const fiveMinutesAgo = now - 5 * 60 * 1000;
     const oneHourAgo = now - 60 * 60 * 1000;
 
     // Service health
-    const activeServices = services.filter(s => s.status === 'active');
-    const inactiveServices = services.filter(s => s.status === 'inactive');
-    const servicesWithPing = services.filter(s => s.ping_url);
+    const activeServices = services?.filter(s => s.status?.toLowerCase() === 'up') || [];
+    const inactiveServices = services?.filter(s => s.status?.toLowerCase() === 'down') || [];
+    const servicesWithPing = services?.filter(s => s.ping_url) || [];
 
     // Agent health
-    const onlineAgents = agents.filter(a => {
+    const onlineAgents = agents?.filter(a => {
       if (!a.last_seen) return false;
       const lastSeenTime = new Date(a.last_seen).getTime();
       return lastSeenTime > fiveMinutesAgo;
-    });
+    }) || [];
 
-    const recentlyActiveAgents = agents.filter(a => {
+    const recentlyActiveAgents = agents?.filter(a => {
       if (!a.last_seen) return false;
       const lastSeenTime = new Date(a.last_seen).getTime();
       return lastSeenTime > oneHourAgo && lastSeenTime <= fiveMinutesAgo;
-    });
+    }) || [];
 
-    const offlineAgents = agents.filter(a => {
+    const offlineAgents = agents?.filter(a => {
       if (!a.last_seen) return true;
       const lastSeenTime = new Date(a.last_seen).getTime();
       return lastSeenTime <= oneHourAgo;
-    });
+    }) || [];
 
     // Overall system health score
-    const totalServices = services.length;
-    const totalAgents = agents.length;
+    const totalServices = services?.length || 0;
+    const totalAgents = agents?.length || 0;
     const healthyServices = activeServices.length;
     const healthyAgents = onlineAgents.length;
     
@@ -72,6 +111,7 @@ export default function HealthPage() {
     const overallHealthScore = (serviceHealthScore + agentHealthScore) / 2;
 
     return {
+      hasProjectData: true,
       services: {
         total: totalServices,
         active: activeServices.length,
@@ -87,8 +127,8 @@ export default function HealthPage() {
         healthScore: agentHealthScore
       },
       overallHealthScore,
-      servicesData: services,
-      agentsData: agents,
+      servicesData: services || [],
+      agentsData: agents || [],
       onlineAgents,
       recentlyActiveAgents,
       offlineAgents
@@ -96,8 +136,10 @@ export default function HealthPage() {
   }, [services, agents]);
 
   const getServiceStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
+      case 'up':
       case 'active': return 'bg-green-100 text-green-800';
+      case 'down':
       case 'inactive': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -134,7 +176,10 @@ export default function HealthPage() {
     refetchAgents();
   };
 
-  if (servicesLoading || agentsLoading) {
+  // Show loading only if we're actually loading (not failed due to missing project)
+  const isActuallyLoading = (servicesLoading || agentsLoading) && !servicesError && !agentsError;
+  
+  if (isActuallyLoading) {
     return (
       <PageLayout>
         <div className="space-y-6">
@@ -189,43 +234,87 @@ export default function HealthPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsWidget
             title="Overall Health"
-            value={`${healthMetrics.overallHealthScore.toFixed(0)}%`}
+            value={healthMetrics.hasProjectData ? `${healthMetrics.overallHealthScore.toFixed(0)}%` : "N/A"}
             description="System status"
             icon={<Activity className="h-4 w-4" />}
-            trend={{ 
+            trend={healthMetrics.hasProjectData ? { 
               value: healthMetrics.overallHealthScore > 80 ? 5 : -10, 
               isPositive: healthMetrics.overallHealthScore > 80 
-            }}
+            } : undefined}
           />
           <StatsWidget
             title="Services"
-            value={`${healthMetrics.services.active}/${healthMetrics.services.total}`}
+            value={healthMetrics.hasProjectData ? `${healthMetrics.services.active}/${healthMetrics.services.total}` : "N/A"}
             description="Active services"
             icon={<Server className="h-4 w-4" />}
           />
           <StatsWidget
             title="Agents"
-            value={`${healthMetrics.agents.online}/${healthMetrics.agents.total}`}
+            value={healthMetrics.hasProjectData ? `${healthMetrics.agents.online}/${healthMetrics.agents.total}` : "N/A"}
             description="Online agents"
             icon={<Users className="h-4 w-4" />}
           />
           <StatsWidget
             title="Connectivity"
-            value={`${healthMetrics.services.withPing}/${healthMetrics.services.total}`}
+            value={healthMetrics.hasProjectData ? `${healthMetrics.services.withPing}/${healthMetrics.services.total}` : "N/A"}
             description="Services with ping"
             icon={<Wifi className="h-4 w-4" />}
           />
         </div>
+        
+        {/* Project Selection Notice */}
+        {!healthMetrics.hasProjectData && (
+          <div className={`border rounded-lg p-4 ${
+            healthMetrics.isLoading 
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+              : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              {healthMetrics.isLoading ? (
+                <RefreshCw className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-spin" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              )}
+              <span className={`text-sm font-medium ${
+                healthMetrics.isLoading 
+                  ? 'text-blue-800 dark:text-blue-200'
+                  : 'text-yellow-800 dark:text-yellow-200'
+              }`}>
+                {healthMetrics.isLoading ? 'Loading project data...' : 'No project selected'}
+              </span>
+            </div>
+            <p className={`text-sm mt-1 ${
+              healthMetrics.isLoading 
+                ? 'text-blue-700 dark:text-blue-300'
+                : 'text-yellow-700 dark:text-yellow-300'
+            }`}>
+              {healthMetrics.isLoading 
+                ? 'Loading project-specific services and agents...'
+                : 'Select a project from the dropdown above to view project-specific services and agents. The Service Health tab shows infrastructure status regardless of project selection.'
+              }
+            </p>
+          </div>
+        )}
 
         {/* Detailed Health Info */}
-        <Tabs defaultValue="services" className="space-y-4">
+        <Tabs defaultValue="health" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="agents">Agents</TabsTrigger>
-            <TabsTrigger value="system">System Overview</TabsTrigger>
+            <TabsTrigger value="health">Service Health</TabsTrigger>
+            {healthMetrics.hasProjectData && (
+              <>
+                <TabsTrigger value="services">Service Registry</TabsTrigger>
+                <TabsTrigger value="agents">Agents</TabsTrigger>
+                <TabsTrigger value="system">System Overview</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
-          <TabsContent value="services" className="space-y-4">
+          <TabsContent value="health" className="space-y-4">
+            <ServiceHealthStatus />
+          </TabsContent>
+
+          {healthMetrics.hasProjectData && (
+            <TabsContent value="services" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -239,13 +328,13 @@ export default function HealthPage() {
               <CardContent>
                 <ScrollArea className="h-[500px]">
                   <div className="space-y-4">
-                    {healthMetrics.servicesData.length > 0 ? (
-                      healthMetrics.servicesData.map((service) => (
-                        <Card key={service.id} className="p-4">
+                    {healthMetrics.servicesData && healthMetrics.servicesData.length > 0 ? (
+                      healthMetrics.servicesData.map((service, index) => (
+                        <Card key={service.service_name || index} className="p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 space-y-2">
                               <div className="flex items-center gap-2">
-                                <h3 className="font-medium">{service.name}</h3>
+                                <h3 className="font-medium">{service.service_name}</h3>
                                 <Badge className={getServiceStatusColor(service.status)}>
                                   {service.status}
                                 </Badge>
@@ -257,8 +346,8 @@ export default function HealthPage() {
                                 )}
                               </div>
                               <div className="text-sm text-muted-foreground space-y-1">
-                                <p><span className="font-medium">Type:</span> {service.type}</p>
-                                <p><span className="font-medium">Endpoint:</span> {service.endpoint_url}</p>
+                                <p><span className="font-medium">Port:</span> {service.port}</p>
+                                <p><span className="font-medium">Owner:</span> {service.owner_agent_id}</p>
                                 {service.ping_url && (
                                   <p><span className="font-medium">Ping URL:</span> {service.ping_url}</p>
                                 )}
@@ -268,17 +357,17 @@ export default function HealthPage() {
                                     : 'Never'
                                 }</p>
                               </div>
-                              {service.metadata && Object.keys(service.metadata).length > 0 && (
+                              {service.meta_data && Object.keys(service.meta_data).length > 0 && (
                                 <div className="text-xs">
                                   <span className="font-medium">Metadata:</span>
                                   <pre className="mt-1 p-2 bg-gray-50 rounded text-xs">
-                                    {JSON.stringify(service.metadata, null, 2)}
+                                    {JSON.stringify(service.meta_data, null, 2)}
                                   </pre>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center">
-                              {service.status === 'active' ? (
+                              {service.status?.toLowerCase() === 'up' ? (
                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                               ) : (
                                 <AlertCircle className="h-5 w-5 text-red-600" />
@@ -298,8 +387,10 @@ export default function HealthPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
-          <TabsContent value="agents" className="space-y-4">
+          {healthMetrics.hasProjectData && (
+            <TabsContent value="agents" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Online Agents */}
               <Card>
@@ -404,8 +495,10 @@ export default function HealthPage() {
               </Card>
             </div>
           </TabsContent>
+          )}
 
-          <TabsContent value="system" className="space-y-4">
+          {healthMetrics.hasProjectData && (
+            <TabsContent value="system" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Health Summary */}
               <Card>
@@ -503,6 +596,7 @@ export default function HealthPage() {
               </Card>
             </div>
           </TabsContent>
+          )}
         </Tabs>
       </div>
     </PageLayout>

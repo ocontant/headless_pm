@@ -34,7 +34,7 @@ Comprehensive test suite for the Headless PM Client that tests all API endpoints
 
 ```bash
 # Run with API key from environment
-API_KEY_HEADLESS_PM=your-api-key python tests/test_headless_pm_client.py
+API_KEY=your-api-key python tests/test_headless_pm_client.py
 
 # Or if .env file is configured
 python tests/test_headless_pm_client.py

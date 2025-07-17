@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 import time
 
-from src.models.models import Agent, Task
+from src.models.models import Agent, Task, Feature, Epic
 from src.models.enums import TaskStatus, AgentRole, DifficultyLevel
 from src.api.schemas import TaskResponse
 from src.models.database import engine
@@ -42,20 +42,25 @@ def get_next_task_for_agent(agent: Agent, db: Session) -> Optional[TaskResponse]
     
     # Determine which statuses to look for based on role
     if agent.role == AgentRole.QA:
-        # QA tests ALL dev_done tasks regardless of target role
-        query = select(Task).where(
-            Task.status == TaskStatus.DEV_DONE,
-            Task.locked_by_id.is_(None)
-        )
+        # QA tests ALL dev_done tasks regardless of target role, but only in their project
+        query = (select(Task)
+                .join(Feature, Task.feature_id == Feature.id)
+                .join(Epic, Feature.epic_id == Epic.id)
+                .where(
+                    Task.status == TaskStatus.DEV_DONE,
+                    Task.locked_by_id.is_(None),
+                    Epic.project_id == agent.project_id
+                ))
     else:
         # Developers (including PM/Architect) work on created tasks
         # Check if there are available agents at lower skill levels for this role
         cutoff_time = datetime.utcnow() - timedelta(minutes=30)  # Consider agent active if seen in last 30 min
         
-        # Get active agents for this role at different skill levels
+        # Get active agents for this role at different skill levels in the same project
         active_agents = db.exec(
             select(Agent).where(
                 Agent.role == agent.role,
+                Agent.project_id == agent.project_id,
                 Agent.last_seen > cutoff_time
             )
         ).all()
@@ -76,20 +81,28 @@ def get_next_task_for_agent(agent: Agent, db: Session) -> Optional[TaskResponse]
                 continue
         
         # For architects and PMs, also include legacy APPROVED status for backward compatibility
-        if agent.role in [AgentRole.ARCHITECT, AgentRole.PM]:
-            query = select(Task).where(
-                (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
-                Task.target_role == agent.role,
-                Task.difficulty.in_(allowed_difficulties),
-                Task.locked_by_id.is_(None)
-            )
+        if agent.role in [AgentRole.ARCHITECT, AgentRole.PM, AgentRole.GLOBAL_PM, AgentRole.PROJECT_PM]:
+            query = (select(Task)
+                    .join(Feature, Task.feature_id == Feature.id)
+                    .join(Epic, Feature.epic_id == Epic.id)
+                    .where(
+                        (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
+                        Task.target_role == agent.role,
+                        Task.difficulty.in_(allowed_difficulties),
+                        Task.locked_by_id.is_(None),
+                        Epic.project_id == agent.project_id
+                    ))
         else:
-            query = select(Task).where(
-                (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
-                Task.target_role == agent.role,
-                Task.difficulty.in_(allowed_difficulties),
-                Task.locked_by_id.is_(None)
-            )
+            query = (select(Task)
+                    .join(Feature, Task.feature_id == Feature.id)
+                    .join(Epic, Feature.epic_id == Epic.id)
+                    .where(
+                        (Task.status == TaskStatus.CREATED) | (Task.status == TaskStatus.APPROVED),
+                        Task.target_role == agent.role,
+                        Task.difficulty.in_(allowed_difficulties),
+                        Task.locked_by_id.is_(None),
+                        Epic.project_id == agent.project_id
+                    ))
     
     # Get oldest unlocked task
     task = db.exec(query.order_by(Task.created_at)).first()

@@ -8,6 +8,7 @@ import logging
 from typing import Any, Dict, Optional
 from datetime import datetime
 import uuid
+import os
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
@@ -65,6 +66,130 @@ class SimpleMCPSSEServer:
                     "X-Accel-Buffering": "no"
                 }
             )
+        
+        @self.app.get("/health")
+        async def health_check():
+            """Health check endpoint for MCP server"""
+            try:
+                # Test connection to main API
+                try:
+                    response = await self.client.get(f"{self.base_url}/health", timeout=5.0)
+                    api_status = "healthy" if response.status_code == 200 else f"unhealthy: {response.status_code}"
+                    api_reachable = True
+                except Exception as e:
+                    api_status = f"unreachable: {str(e)}"
+                    api_reachable = False
+                
+                # Count active sessions
+                active_sessions = len(self.sessions)
+                
+                # Overall status
+                overall_status = "healthy" if api_reachable else "degraded"
+                
+                # Get dependency health status (API server)
+                api_dependency = None
+                try:
+                    api_response = await self.client.get(f"{self.base_url}/health", timeout=5.0)
+                    if api_response.status_code == 200:
+                        api_data = api_response.json()
+                        # Remove depends_on to avoid recursive loops
+                        if 'depends_on' in api_data:
+                            del api_data['depends_on']
+                        api_dependency = api_data
+                except Exception:
+                    api_dependency = {
+                        "status": "unreachable",
+                        "service": "headless-pm-api",
+                        "error": "Could not fetch dependency health"
+                    }
+                
+                return {
+                    "status": overall_status,
+                    "service": "headless-pm-mcp-sse",
+                    "version": "1.0.0",
+                    "pid": os.getpid(),
+                    "active_sessions": active_sessions,
+                    "base_url": self.base_url,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "depends_on": [
+                        {
+                            "service": "headless-pm-api",
+                            "url": f"{self.base_url}/health",
+                            "health": api_dependency
+                        }
+                    ]
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "service": "headless-pm-mcp-sse",
+                    "version": "1.0.0",
+                    "pid": os.getpid(),
+                    "error": str(e),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "depends_on": [
+                        {
+                            "service": "headless-pm-api",
+                            "url": f"{self.base_url}/health",
+                            "health": {
+                                "status": "unknown",
+                                "service": "headless-pm-api",
+                                "error": "Could not check dependency due to service error"
+                            }
+                        }
+                    ]
+                }
+        
+        @self.app.get("/status")
+        async def status_check():
+            """Detailed status endpoint for MCP server"""
+            try:
+                # Get session details
+                session_details = []
+                for session_id, session in self.sessions.items():
+                    session_details.append({
+                        "id": session_id,
+                        "agent_id": session.get("agent_id"),
+                        "role": session.get("agent_role"),
+                        "skill_level": session.get("agent_skill_level")
+                    })
+                
+                # Test API connection with more details
+                api_details = {}
+                try:
+                    response = await self.client.get(f"{self.base_url}/health", timeout=10.0)
+                    api_details = {
+                        "reachable": True,
+                        "status_code": response.status_code,
+                        "response_time_ms": response.elapsed.total_seconds() * 1000 if hasattr(response, 'elapsed') else None,
+                        "content": response.json() if response.status_code == 200 else None
+                    }
+                except Exception as e:
+                    api_details = {
+                        "reachable": False,
+                        "error": str(e)
+                    }
+                
+                return {
+                    "service": "headless-pm-mcp-sse",
+                    "version": "1.0.0",
+                    "status": "healthy" if api_details.get("reachable") else "degraded",
+                    "sessions": {
+                        "active_count": len(self.sessions),
+                        "details": session_details
+                    },
+                    "api_backend": api_details,
+                    "base_url": self.base_url,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            except Exception as e:
+                return {
+                    "service": "headless-pm-mcp-sse",
+                    "version": "1.0.0",
+                    "status": "error",
+                    "error": str(e),
+                    "timestamp": datetime.utcnow().isoformat()
+                }
         
         @self.app.post("/")
         async def handle_message(request: Request):

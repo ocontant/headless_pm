@@ -40,8 +40,8 @@ class HeadlessPMClient:
     
     def __init__(self, base_url: str = None, api_key: str = None):
         self.base_url = base_url or os.getenv("HEADLESS_PM_URL", "http://localhost:6969")
-        # Try API_KEY_HEADLESS_PM first, then API_KEY from .env, then HEADLESS_PM_API_KEY for backward compatibility
-        self.api_key = api_key or os.getenv("API_KEY_HEADLESS_PM") or os.getenv("API_KEY") or os.getenv("HEADLESS_PM_API_KEY", "your-secret-api-key")
+        # Use API_KEY from environment
+        self.api_key = api_key or os.getenv("API_KEY", "your-secret-api-key")
         self.headers = {"X-API-Key": self.api_key}
         
     def _request(self, method: str, path: str, **kwargs) -> Dict[str, Any]:
@@ -66,30 +66,74 @@ class HeadlessPMClient:
             print(f"Connection error: {e}")
             sys.exit(1)
     
+    # Project Management
+    def create_project(self, name: str, description: str, shared_path: str = "./shared", 
+                      instructions_path: str = "./agent_instructions", 
+                      project_docs_path: str = "./docs"):
+        """Create a new project"""
+        data = {
+            "name": name,
+            "description": description,
+            "shared_path": shared_path,
+            "instructions_path": instructions_path,
+            "project_docs_path": project_docs_path
+        }
+        return self._request("POST", "/api/v1/projects", json=data)
+    
+    def list_projects(self):
+        """List all projects"""
+        return self._request("GET", "/api/v1/projects")
+    
+    def get_project(self, project_id: int):
+        """Get a specific project"""
+        return self._request("GET", f"/api/v1/projects/{project_id}")
+    
+    def update_project(self, project_id: int, description: str = None, 
+                      shared_path: str = None, instructions_path: str = None,
+                      project_docs_path: str = None):
+        """Update a project"""
+        data = {}
+        if description is not None:
+            data["description"] = description
+        if shared_path is not None:
+            data["shared_path"] = shared_path
+        if instructions_path is not None:
+            data["instructions_path"] = instructions_path
+        if project_docs_path is not None:
+            data["project_docs_path"] = project_docs_path
+        return self._request("PATCH", f"/api/v1/projects/{project_id}", json=data)
+    
+    def delete_project(self, project_id: int, force: bool = False):
+        """Delete a project"""
+        params = {"force": force} if force else {}
+        return self._request("DELETE", f"/api/v1/projects/{project_id}", params=params)
+
     # Agent Management
-    def register_agent(self, agent_id: str, role: str, level: str, connection_type: str = "client"):
+    def register_agent(self, agent_id: str, project_id: int, role: str, level: str, connection_type: str = "client"):
         """Register an agent"""
         data = {
             "agent_id": agent_id,
+            "project_id": project_id,
             "role": role,
             "level": level,
             "connection_type": connection_type
         }
         return self._request("POST", "/api/v1/register", json=data)
     
-    def list_agents(self):
+    def list_agents(self, project_id: int = None):
         """List all registered agents"""
-        return self._request("GET", "/api/v1/agents")
+        params = {"project_id": project_id} if project_id else {}
+        return self._request("GET", "/api/v1/agents", params=params)
     
-    def delete_agent(self, agent_id: str, requester_agent_id: str):
+    def delete_agent(self, agent_id: str, requester_agent_id: str, project_id: int):
         """Delete an agent (PM only)"""
         return self._request("DELETE", f"/api/v1/agents/{agent_id}", 
-                           params={"requester_agent_id": requester_agent_id})
+                           params={"requester_agent_id": requester_agent_id, "project_id": project_id})
     
     # Project Context
-    def get_context(self):
+    def get_context(self, project_id: int):
         """Get project context and configuration"""
-        return self._request("GET", "/api/v1/context")
+        return self._request("GET", f"/api/v1/context/{project_id}")
     
     # Epic Management
     def create_epic(self, name: str, description: str, agent_id: str):
@@ -558,9 +602,7 @@ UPDATES:
 
 ENVIRONMENT VARIABLES:
   HEADLESS_PM_URL       - API base URL (default: http://localhost:6969)
-  API_KEY_HEADLESS_PM   - API authentication key (highest priority)
-  API_KEY               - API authentication key (from .env file)
-  HEADLESS_PM_API_KEY   - API authentication key (fallback)
+  API_KEY               - API authentication key
 
 The client automatically loads .env file from the project root directory.
 
@@ -575,14 +617,42 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     
     # Global options
     parser.add_argument("--url", help="API base URL (default: $HEADLESS_PM_URL or http://localhost:6969)")
-    parser.add_argument("--api-key", help="API key (default: $HEADLESS_PM_API_KEY)")
+    parser.add_argument("--api-key", help="API key (default: $API_KEY)")
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Project commands
+    project_parser = subparsers.add_parser("projects", help="Project management")
+    project_sub = project_parser.add_subparsers(dest="project_action")
+    
+    project_create = project_sub.add_parser("create", help="Create new project")
+    project_create.add_argument("--name", required=True, help="Project name")
+    project_create.add_argument("--description", required=True, help="Project description")
+    project_create.add_argument("--shared-path", default="./shared", help="Shared files path")
+    project_create.add_argument("--instructions-path", default="./agent_instructions", help="Instructions path")
+    project_create.add_argument("--docs-path", default="./docs", help="Documentation path")
+    
+    project_sub.add_parser("list", help="List all projects")
+    
+    project_get = project_sub.add_parser("get", help="Get project details")
+    project_get.add_argument("project_id", type=int, help="Project ID")
+    
+    project_update = project_sub.add_parser("update", help="Update project")
+    project_update.add_argument("project_id", type=int, help="Project ID")
+    project_update.add_argument("--description", help="Updated description")
+    project_update.add_argument("--shared-path", help="Updated shared files path")
+    project_update.add_argument("--instructions-path", help="Updated instructions path")
+    project_update.add_argument("--docs-path", help="Updated documentation path")
+    
+    project_delete = project_sub.add_parser("delete", help="Delete project")
+    project_delete.add_argument("project_id", type=int, help="Project ID")
+    project_delete.add_argument("--force", action="store_true", help="Force delete even if project has data")
     
     # Register agent
     register_parser = subparsers.add_parser("register", 
                                            help="Register an agent (returns agent info, next task, and mentions)")
     register_parser.add_argument("--agent-id", required=True, help="Unique agent identifier")
+    register_parser.add_argument("--project-id", type=int, required=True, help="Project ID")
     register_parser.add_argument("--role", required=True, 
                                choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"])
     register_parser.add_argument("--level", required=True, 
@@ -594,14 +664,17 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     agents_parser = subparsers.add_parser("agents", help="Agent management")
     agents_sub = agents_parser.add_subparsers(dest="agents_action")
     
-    agents_sub.add_parser("list", help="List all registered agents")
+    agents_list = agents_sub.add_parser("list", help="List all registered agents")
+    agents_list.add_argument("--project-id", type=int, help="Filter by project ID")
     
     agents_delete = agents_sub.add_parser("delete", help="Delete an agent (PM only)")
     agents_delete.add_argument("--agent-id", required=True, help="Agent ID to delete")
     agents_delete.add_argument("--requester-agent-id", required=True, help="PM agent ID making the request")
+    agents_delete.add_argument("--project-id", type=int, required=True, help="Project ID")
     
     # Get context
-    subparsers.add_parser("context", help="Get project context and configuration")
+    context_parser = subparsers.add_parser("context", help="Get project context and configuration")
+    context_parser.add_argument("project_id", type=int, help="Project ID")
     
     # Epic commands
     epic_parser = subparsers.add_parser("epics", help="Epic management")
@@ -782,20 +855,41 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     
     # Execute commands
     try:
-        if args.command == "register":
-            result = client.register_agent(args.agent_id, args.role, args.level, args.connection_type)
+        if args.command == "projects":
+            if args.project_action == "create":
+                result = client.create_project(
+                    args.name, args.description, args.shared_path, 
+                    args.instructions_path, args.docs_path
+                )
+            elif args.project_action == "list":
+                result = client.list_projects()
+            elif args.project_action == "get":
+                result = client.get_project(args.project_id)
+            elif args.project_action == "update":
+                result = client.update_project(
+                    args.project_id, args.description, args.shared_path,
+                    args.instructions_path, args.docs_path
+                )
+            elif args.project_action == "delete":
+                result = client.delete_project(args.project_id, args.force)
+            else:
+                project_parser.print_help()
+                sys.exit(1)
+                
+        elif args.command == "register":
+            result = client.register_agent(args.agent_id, args.project_id, args.role, args.level, args.connection_type)
             
         elif args.command == "agents":
             if args.agents_action == "list" or not args.agents_action:
-                result = client.list_agents()
+                result = client.list_agents(getattr(args, 'project_id', None))
             elif args.agents_action == "delete":
-                result = client.delete_agent(args.agent_id, args.requester_agent_id)
+                result = client.delete_agent(args.agent_id, args.requester_agent_id, args.project_id)
             else:
                 agents_parser.print_help()
                 sys.exit(1)
             
         elif args.command == "context":
-            result = client.get_context()
+            result = client.get_context(args.project_id)
             
         elif args.command == "epics":
             if args.epic_action == "create":

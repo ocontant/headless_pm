@@ -1,108 +1,176 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { HeadlessPMClient } from '@/lib/api/client';
+import { useProjectContext } from '@/lib/contexts/project-context';
 import { 
   AgentRole, SkillLevel, TaskStatus, DocumentType,
-  Epic, Feature, Task, Agent, Document, Service, Mention
+  Epic, Feature, Task, Agent, Document, Service, Mention, Project
 } from '@/lib/types';
 
-// Create a singleton instance of the API client to prevent re-initialization
-let apiClientInstance: HeadlessPMClient | null = null;
+// API client is now managed by ProjectContext
 
-const getApiClient = () => {
-  if (!apiClientInstance) {
-    apiClientInstance = new HeadlessPMClient(
-      process.env.NEXT_PUBLIC_API_URL,
-      process.env.NEXT_PUBLIC_API_KEY
-    );
-  }
-  return apiClientInstance;
+// Use project context instead
+export const useCurrentProject = () => {
+  const { currentProjectId } = useProjectContext();
+  return currentProjectId;
 };
 
-const apiClient = getApiClient();
+// Project hooks - use context projects
+export const useProjects = () => {
+  const { projects, isLoading } = useProjectContext();
+  return {
+    data: projects,
+    isLoading,
+    error: null,
+    refetch: () => Promise.resolve()
+  };
+};
+
+export const useCreateProject = () => {
+  const { apiClient, loadProjects } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      description: string;
+      shared_path: string;
+      instructions_path: string;
+      project_docs_path: string;
+    }) => apiClient.createProject(data),
+    onSuccess: () => {
+      loadProjects();
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    }
+  });
+};
+
+export const useUpdateProject = () => {
+  const { apiClient, loadProjects } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, updates }: {
+      projectId: number;
+      updates: {
+        description?: string;
+        shared_path?: string;
+        instructions_path?: string;
+        project_docs_path?: string;
+      };
+    }) => apiClient.updateProject(projectId, updates),
+    onSuccess: () => {
+      loadProjects();
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    }
+  });
+};
+
+export const useDeleteProject = () => {
+  const { apiClient, loadProjects } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (projectId: number) => apiClient.deleteProject(projectId),
+    onSuccess: () => {
+      loadProjects();
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    }
+  });
+};
 
 // Epic hooks
 export const useEpics = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['epics'],
+    queryKey: ['epics', currentProjectId],
     queryFn: () => apiClient.getEpics(),
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    enabled: !!currentProjectId,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: false
   });
 };
 
 export const useCreateEpic = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { name: string; description?: string; pmId?: string }) => 
       apiClient.createEpic(data.name, data.description, data.pmId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['epics'] });
+      queryClient.invalidateQueries({ queryKey: ['epics', currentProjectId] });
     }
   });
 };
 
 // Feature hooks
 export const useFeatures = (epicId?: number) => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['features', epicId],
+    queryKey: ['features', epicId, currentProjectId],
     queryFn: () => apiClient.getFeatures(epicId),
-    enabled: epicId !== undefined
+    enabled: epicId !== undefined && !!currentProjectId
   });
 };
 
 // Task hooks
 export const useTasks = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', currentProjectId],
     queryFn: () => apiClient.getTasks(),
-    refetchInterval: 10000, // Refetch every 10 seconds
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    enabled: !!currentProjectId,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: false
   });
 };
 
 export const useTasksByFeature = (featureId: number) => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['tasks', 'feature', featureId],
+    queryKey: ['tasks', 'feature', featureId, currentProjectId],
     queryFn: () => apiClient.getTasksByFeature(featureId),
-    enabled: !!featureId
+    enabled: !!featureId && !!currentProjectId
   });
 };
 
 export const useUpdateTaskStatus = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, status, agentId }: { taskId: number; status: TaskStatus; agentId: string }) =>
       apiClient.updateTaskStatus(taskId, status, agentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
     }
   });
 };
 
 // Agent hooks
 export const useAgents = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['agents'],
+    queryKey: ['agents', currentProjectId],
     queryFn: () => apiClient.getAgents(),
-    refetchInterval: 30000, // Refetch every 30 seconds (reduced from 5 seconds)
+    enabled: !!currentProjectId,
+    refetchInterval: 30000,
     refetchOnWindowFocus: false,
-    staleTime: 10000, // Consider data fresh for 10 seconds
+    staleTime: 10000,
     retry: 1
   });
 };
 
 // Document hooks
-export const useDocuments = (authorId?: string, type?: DocumentType) => {
+export const useDocuments = (authorId?: string, type?: DocumentType, enabled = true) => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['documents', authorId, type],
+    queryKey: ['documents', authorId, type, currentProjectId],
     queryFn: () => apiClient.getDocuments(authorId, type),
+    enabled: enabled && !!currentProjectId,
     refetchInterval: 15000,
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    refetchOnWindowFocus: false
   });
 };
 
 export const useCreateDocument = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: { type: DocumentType; title: string; content: string; author_id: string }) =>
@@ -115,84 +183,93 @@ export const useCreateDocument = () => {
 };
 
 // Mention hooks
-export const useMentions = (agentId?: string, unreadOnly = false) => {
+export const useMentions = (agentId?: string, unreadOnly = false, enabled = true) => {
+  const { apiClient, currentProjectId } = useProjectContext();
   console.log('useMentions called with agentId:', agentId);
   return useQuery({
-    queryKey: ['mentions', agentId, unreadOnly],
+    queryKey: ['mentions', agentId, unreadOnly, currentProjectId],
     queryFn: () => apiClient.getMentions(agentId, unreadOnly),
-    enabled: true, // Always enabled since API can handle no agent_id
+    enabled: enabled && !!currentProjectId,
     refetchInterval: 10000,
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    refetchOnWindowFocus: false
   });
 };
 
-export const useMentionsByRole = (role?: string, unreadOnly = false) => {
+export const useMentionsByRole = (role?: string, unreadOnly = false, enabled = true) => {
+  const { apiClient, currentProjectId } = useProjectContext();
   console.log('useMentionsByRole called with role:', role);
   return useQuery({
-    queryKey: ['mentions', 'by-role', role, unreadOnly],
+    queryKey: ['mentions', 'by-role', role, unreadOnly, currentProjectId],
     queryFn: () => apiClient.getMentionsByRole(role, unreadOnly),
-    enabled: true, // Always enabled since API can handle no role
+    enabled: enabled && !!currentProjectId,
     refetchInterval: 10000,
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    refetchOnWindowFocus: false
   });
 };
 
 // Service hooks
 export const useServices = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['services'],
+    queryKey: ['services', currentProjectId],
     queryFn: () => apiClient.getServices(),
-    refetchInterval: 5000, // Frequent refresh for health monitoring
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    enabled: !!currentProjectId,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: false
   });
 };
 
 // Context hook
-export const useProjectContext = () => {
+export const useProjectContextData = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['context'],
+    queryKey: ['context', currentProjectId],
     queryFn: () => apiClient.getContext(),
-    staleTime: Infinity // Context rarely changes
+    enabled: !!currentProjectId,
+    staleTime: Infinity
   });
 };
 
 // Changes hook for real-time updates
 export const useChanges = (since: number, agentId?: string) => {
+  const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
-    queryKey: ['changes', since, agentId],
+    queryKey: ['changes', since, agentId, currentProjectId],
     queryFn: () => apiClient.getChanges(since, agentId),
-    refetchInterval: 3000, // Poll every 3 seconds
-    enabled: !!since,
-    refetchOnWindowFocus: false // Prevent refetch on window focus
+    refetchInterval: 3000,
+    enabled: !!since && !!currentProjectId,
+    refetchOnWindowFocus: false
   });
 };
 
 // Generic useApi hook for flexible API calls
 export const useApi = <T>(
-  queryKey: string | readonly unknown[],
-  queryFn: (client: HeadlessPMClient) => Promise<T>,
+  queryKey?: string | readonly unknown[],
+  queryFn?: (client: HeadlessPMClient) => Promise<T>,
   options?: {
     refetchInterval?: number;
     enabled?: boolean;
     staleTime?: number;
   }
 ) => {
+  const { apiClient } = useProjectContext();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: Array.isArray(queryKey) ? queryKey : [queryKey],
-    queryFn: () => queryFn(apiClient),
-    refetchInterval: options?.refetchInterval || false, // Use provided interval or disable
+    queryKey: queryKey ? (Array.isArray(queryKey) ? queryKey : [queryKey]) : ['default'],
+    queryFn: queryFn ? () => queryFn(apiClient) : async () => null as T,
+    refetchInterval: options?.refetchInterval || false,
     refetchOnWindowFocus: false,
-    enabled: options?.enabled !== false,
-    staleTime: options?.staleTime || 30000, // 30 seconds default stale time
+    enabled: options?.enabled !== false && !!queryFn,
+    staleTime: options?.staleTime || 30000,
     retry: 1,
     retryDelay: 2000
   });
 
   return {
-    data: data as T, // Don't force empty array, let components handle undefined
+    data: data as T,
     isLoading,
     error,
     refetch,
-    mutate: refetch
+    mutate: refetch,
+    client: apiClient
   };
 };

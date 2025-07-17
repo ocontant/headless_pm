@@ -2,16 +2,24 @@ import axios, { AxiosInstance } from 'axios';
 import { 
   Agent, Epic, Feature, Task, TaskComment, Document, 
   Mention, Service, ProjectContext, Changes,
-  TaskStatus, AgentRole, SkillLevel, DocumentType
+  TaskStatus, AgentRole, SkillLevel, DocumentType,
+  Project, AgentAvailability
 } from '@/lib/types';
 
 export class HeadlessPMClient {
   private client: AxiosInstance;
+  private currentProjectId: number | null = null;
 
   constructor(baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969', apiKey?: string) {
-    const apiKeyToUse = apiKey || process.env.NEXT_PUBLIC_API_KEY;
+    // Check localStorage first for user-configured values
+    const storedUrl = typeof window !== 'undefined' ? localStorage.getItem('apiUrl') : null;
+    const storedKey = typeof window !== 'undefined' ? localStorage.getItem('apiKey') : null;
+    
+    const finalUrl = storedUrl || baseURL;
+    const apiKeyToUse = storedKey || apiKey || process.env.NEXT_PUBLIC_API_KEY;
+    
     this.client = axios.create({
-      baseURL: `${baseURL}/api/v1`,
+      baseURL: `${finalUrl}/api/v1`,
       headers: {
         'Content-Type': 'application/json',
         ...(apiKeyToUse && { 'X-API-Key': apiKeyToUse })
@@ -19,10 +27,60 @@ export class HeadlessPMClient {
     });
   }
 
+  setCurrentProject(projectId: number | null) {
+    this.currentProjectId = projectId;
+  }
+
+  getCurrentProject(): number | null {
+    return this.currentProjectId;
+  }
+
+  // Project endpoints
+  async getProjects() {
+    const { data } = await this.client.get<Project[]>('/projects');
+    return data;
+  }
+
+  async getProject(projectId: number) {
+    const { data } = await this.client.get<Project>(`/projects/${projectId}`);
+    return data;
+  }
+
+  async createProject(project: {
+    name: string;
+    description: string;
+    shared_path: string;
+    instructions_path: string;
+    project_docs_path: string;
+    code_guidelines_path?: string;
+  }) {
+    const { data } = await this.client.post<Project>('/projects', project);
+    return data;
+  }
+
+  async updateProject(projectId: number, updates: {
+    description?: string;
+    shared_path?: string;
+    instructions_path?: string;
+    project_docs_path?: string;
+    code_guidelines_path?: string;
+  }) {
+    const { data } = await this.client.patch<Project>(`/projects/${projectId}`, updates);
+    return data;
+  }
+
+  async deleteProject(projectId: number) {
+    await this.client.delete(`/projects/${projectId}`);
+  }
+
   // Agent endpoints
   async registerAgent(agentId: string, role: AgentRole, skillLevel: SkillLevel, name?: string) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
     const { data } = await this.client.post<Agent>('/register', {
       agent_id: agentId,
+      project_id: this.currentProjectId,
       role,
       skill_level: skillLevel,
       name
@@ -31,12 +89,44 @@ export class HeadlessPMClient {
   }
 
   async getAgents() {
-    const { data } = await this.client.get<Agent[]>('/agents');
+    const params = this.currentProjectId ? `?project_id=${this.currentProjectId}` : '';
+    const { data } = await this.client.get<Agent[]>(`/agents${params}`);
     return data;
   }
 
   async deleteAgent(agentId: string) {
     await this.client.delete(`/agents/${agentId}`);
+  }
+
+  async getAgentsAvailability(role?: AgentRole) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const params = new URLSearchParams();
+    params.append('project_id', this.currentProjectId.toString());
+    if (role) {
+      params.append('role', role);
+    }
+    const { data } = await this.client.get<AgentAvailability[]>(`/agents/availability?${params.toString()}`);
+    return data;
+  }
+
+  async getAgentAvailability(agentId: string) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const params = new URLSearchParams();
+    params.append('project_id', this.currentProjectId.toString());
+    const { data } = await this.client.get<AgentAvailability>(`/agents/${agentId}/availability?${params.toString()}`);
+    return data;
+  }
+
+  async assignTaskToAgent(taskId: number, targetAgentId: string, assignerAgentId: string) {
+    const params = new URLSearchParams();
+    params.append('target_agent_id', targetAgentId);
+    params.append('assigner_agent_id', assignerAgentId);
+    const { data } = await this.client.post<Task>(`/tasks/${taskId}/assign?${params.toString()}`);
+    return data;
   }
 
   // Epic endpoints
@@ -134,7 +224,11 @@ export class HeadlessPMClient {
 
   // Document endpoints
   async getDocuments(authorId?: string, type?: DocumentType) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
     const params = new URLSearchParams();
+    params.append('project_id', this.currentProjectId.toString());
     if (authorId) params.append('author_id', authorId);
     if (type) params.append('type', type);
     
@@ -153,13 +247,28 @@ export class HeadlessPMClient {
     content: string;
     author_id: string;
   }) {
-    const { data } = await this.client.post<Document>('/documents', document);
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const params = new URLSearchParams();
+    params.append('author_id', document.author_id);
+    params.append('project_id', this.currentProjectId.toString());
+    
+    const { data } = await this.client.post<Document>(`/documents?${params.toString()}`, {
+      doc_type: document.type,
+      title: document.title,
+      content: document.content
+    });
     return data;
   }
 
   // Mention endpoints
   async getMentions(agentId?: string, unreadOnly = false) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
     const params = new URLSearchParams();
+    params.append('project_id', this.currentProjectId.toString());
     if (agentId) {
       params.append('agent_id', agentId);
     }
@@ -173,7 +282,11 @@ export class HeadlessPMClient {
   }
 
   async getMentionsByRole(role?: string, unreadOnly = false) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
     const params = new URLSearchParams();
+    params.append('project_id', this.currentProjectId.toString());
     if (role) {
       params.append('role', role);
     }
@@ -191,7 +304,12 @@ export class HeadlessPMClient {
 
   // Service endpoints
   async getServices() {
-    const { data } = await this.client.get<Service[]>('/services');
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const params = new URLSearchParams();
+    params.append('project_id', this.currentProjectId.toString());
+    const { data } = await this.client.get<Service[]>(`/services?${params.toString()}`);
     return data;
   }
 
@@ -201,24 +319,50 @@ export class HeadlessPMClient {
     endpoint_url: string;
     ping_url?: string;
     metadata?: Record<string, any>;
-  }) {
-    const { data } = await this.client.post<Service>('/services/register', service);
+  }, agentId: string) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const params = new URLSearchParams();
+    params.append('agent_id', agentId);
+    params.append('project_id', this.currentProjectId.toString());
+    
+    const { data } = await this.client.post<Service>(`/services/register?${params.toString()}`, {
+      service_name: service.name,
+      ping_url: service.ping_url || service.endpoint_url,
+      port: service.endpoint_url ? parseInt(new URL(service.endpoint_url).port) || undefined : undefined,
+      status: 'UP',
+      meta_data: service.metadata
+    });
     return data;
   }
 
-  async sendHeartbeat(serviceName: string) {
-    await this.client.post(`/services/${serviceName}/heartbeat`);
+  async sendHeartbeat(serviceName: string, agentId: string) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const params = new URLSearchParams();
+    params.append('agent_id', agentId);
+    params.append('project_id', this.currentProjectId.toString());
+    await this.client.post(`/services/${serviceName}/heartbeat?${params.toString()}`);
   }
 
   // Context and changes
   async getContext() {
-    const { data } = await this.client.get<ProjectContext>('/context');
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
+    const { data } = await this.client.get<ProjectContext>(`/context/${this.currentProjectId}`);
     return data;
   }
 
   async getChanges(since: number, agentId?: string) {
+    if (!this.currentProjectId) {
+      throw new Error('No project selected. Please select a project first.');
+    }
     const params = new URLSearchParams();
-    params.append('since', since.toString());
+    params.append('since', new Date(since * 1000).toISOString());
+    params.append('project_id', this.currentProjectId.toString());
     if (agentId) params.append('agent_id', agentId);
     
     const { data } = await this.client.get<Changes>(`/changes?${params.toString()}`);

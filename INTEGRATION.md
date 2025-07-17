@@ -272,7 +272,7 @@ HEADLESS_PM_URL=http://localhost:6969
 HEADLESS_PM_TIMEOUT=30
 
 # For MCP with authentication (if needed)
-HEADLESS_PM_API_KEY=your_api_key_here
+API_KEY=your_api_key_here
 
 # Agent defaults
 DEFAULT_AGENT_ROLE=backend_dev

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, X } from 'lucide-react';
 import { AgentRole, TaskStatus, TaskDifficulty, TaskComplexity } from '@/lib/types';
+import { useProjects } from '@/lib/hooks/useApi';
 
 interface TaskFiltersProps {
   onFiltersChange?: (filters: TaskFilters) => void;
@@ -22,10 +23,12 @@ export interface TaskFilters {
   assignee?: string;
   branch?: string;
   search?: string;
+  project?: string;
 }
 
 export function TaskFilters({ onFiltersChange }: TaskFiltersProps) {
   const [filters, setFilters] = useState<TaskFilters>({});
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
 
   // Use useEffect to call onFiltersChange after state updates
   useEffect(() => {
@@ -54,6 +57,29 @@ export function TaskFilters({ onFiltersChange }: TaskFiltersProps) {
     <Card>
       <CardContent className="p-4">
         <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="project-filter" className="text-sm font-medium">
+              Project:
+            </Label>
+            <Select value={filters.project || 'all'} onValueChange={(value) => updateFilters('project', value)}>
+              <SelectTrigger id="project-filter" className="w-[140px]">
+                <SelectValue placeholder="All Projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Projects</SelectItem>
+                {projectsLoading ? (
+                  <SelectItem value="loading" disabled>Loading...</SelectItem>
+                ) : (
+                  projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center gap-2">
             <Label htmlFor="epic-filter" className="text-sm font-medium">
               Epic:

@@ -57,26 +57,28 @@ export function AgentFilters({ onFiltersChange }: AgentFiltersProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Filter className="h-4 w-4" />
-          Filter Agents
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Filter className="h-4 w-4 shrink-0" />
+            <span className="truncate">Filter Agents</span>
+          </CardTitle>
           {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-2 shrink-0">
               <X className="h-3 w-3 mr-1" />
               Clear
             </Button>
           )}
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search Input */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search agents by name or ID..."
+            placeholder="Search agents..."
             value={filters.search}
             onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-10"
+            className="pl-10 text-sm"
           />
         </div>
 
@@ -88,42 +90,42 @@ export function AgentFilters({ onFiltersChange }: AgentFiltersProps) {
               variant={filters.status === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => updateFilter('status', 'all')}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
             >
-              <Users className="h-3 w-3" />
-              All
+              <Users className="h-3 w-3 shrink-0" />
+              <span className="truncate">All</span>
             </Button>
             <Button
               variant={filters.status === 'online' ? 'default' : 'outline'}
               size="sm"
               onClick={() => updateFilter('status', 'online')}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
             >
-              <Wifi className="h-3 w-3" />
-              Online
+              <Wifi className="h-3 w-3 shrink-0" />
+              <span className="truncate">Online</span>
             </Button>
             <Button
               variant={filters.status === 'offline' ? 'default' : 'outline'}
               size="sm"
               onClick={() => updateFilter('status', 'offline')}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
             >
-              <WifiOff className="h-3 w-3" />
-              Offline
+              <WifiOff className="h-3 w-3 shrink-0" />
+              <span className="truncate">Offline</span>
             </Button>
             <Button
               variant={filters.status === 'working' ? 'default' : 'outline'}
               size="sm"
               onClick={() => updateFilter('status', 'working')}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
             >
-              Working
+              <span className="truncate">Working</span>
             </Button>
           </div>
         </div>
 
         {/* Dropdown Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Role</label>
             <Select value={filters.role} onValueChange={(value) => updateFilter('role', value)}>
@@ -177,46 +179,46 @@ export function AgentFilters({ onFiltersChange }: AgentFiltersProps) {
             <label className="text-sm font-medium">Active Filters:</label>
             <div className="flex flex-wrap gap-2">
               {filters.search && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Search: "{filters.search}"
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs max-w-full">
+                  <span className="truncate">Search: "{filters.search}"</span>
                   <X 
-                    className="h-3 w-3 cursor-pointer" 
+                    className="h-3 w-3 cursor-pointer shrink-0 ml-1" 
                     onClick={() => updateFilter('search', '')}
                   />
                 </Badge>
               )}
               {filters.role !== 'all' && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Role: {filters.role.replace('_', ' ')}
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  <span className="truncate">Role: {filters.role.replace('_', ' ')}</span>
                   <X 
-                    className="h-3 w-3 cursor-pointer" 
+                    className="h-3 w-3 cursor-pointer shrink-0 ml-1" 
                     onClick={() => updateFilter('role', 'all')}
                   />
                 </Badge>
               )}
               {filters.skillLevel !== 'all' && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Level: {filters.skillLevel}
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  <span className="truncate">Level: {filters.skillLevel}</span>
                   <X 
-                    className="h-3 w-3 cursor-pointer" 
+                    className="h-3 w-3 cursor-pointer shrink-0 ml-1" 
                     onClick={() => updateFilter('skillLevel', 'all')}
                   />
                 </Badge>
               )}
               {filters.connectionType !== 'all' && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Connection: {filters.connectionType}
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  <span className="truncate">Connection: {filters.connectionType}</span>
                   <X 
-                    className="h-3 w-3 cursor-pointer" 
+                    className="h-3 w-3 cursor-pointer shrink-0 ml-1" 
                     onClick={() => updateFilter('connectionType', 'all')}
                   />
                 </Badge>
               )}
               {filters.status !== 'all' && (
-                <Badge variant="secondary" className="flex items-center gap-1">
-                  Status: {filters.status}
+                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  <span className="truncate">Status: {filters.status}</span>
                   <X 
-                    className="h-3 w-3 cursor-pointer" 
+                    className="h-3 w-3 cursor-pointer shrink-0 ml-1" 
                     onClick={() => updateFilter('status', 'all')}
                   />
                 </Badge>

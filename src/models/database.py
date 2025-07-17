@@ -1,6 +1,7 @@
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import SQLModel, create_engine, Session, select
 from typing import Generator
 import os
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -30,7 +31,39 @@ engine = create_engine(
 )
 
 def create_db_and_tables():
+    """Create database tables and ensure default Headless-PM project exists."""
     SQLModel.metadata.create_all(engine)
+    
+    # Ensure default Headless-PM project exists
+    ensure_default_project()
+
+def ensure_default_project():
+    """Ensure the default Headless-PM project exists in the database."""
+    from .models import Project  # Import here to avoid circular imports
+    
+    with Session(engine) as session:
+        # Check if Headless-PM project exists
+        headless_pm = session.exec(
+            select(Project).where(Project.name == "Headless-PM")
+        ).first()
+        
+        if not headless_pm:
+            # Create the default Headless-PM project
+            default_project = Project(
+                name="Headless-PM",
+                description="Headless PM application development and infrastructure",
+                shared_path="./shared",
+                instructions_path="./agents/mcp",
+                project_docs_path="./docs",
+                code_guidelines_path="./CLAUDE.md",
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+            session.add(default_project)
+            session.commit()
+            print("✅ Created default Headless-PM project")
+        else:
+            print("✅ Default Headless-PM project already exists")
 
 def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:

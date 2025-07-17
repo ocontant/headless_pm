@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from src.models.database import get_session
-from src.models.models import Document, Task, Service, Mention, Changelog
+from src.models.models import Document, Task, Service, Mention, Changelog, Feature, Epic
 from src.api.dependencies import verify_api_key
 
 router = APIRouter(prefix="/api/v1", tags=["Changes"], dependencies=[Depends(verify_api_key)])
@@ -25,6 +25,7 @@ class ChangesResponse(BaseModel):
 def get_changes(
     since: datetime = Query(..., description="Get changes after this timestamp"),
     agent_id: str = Query(..., description="Agent ID requesting changes"),
+    project_id: int = Query(..., description="Project ID to filter changes"),
     db: Session = Depends(get_session)
 ):
     try:
@@ -33,8 +34,10 @@ def get_changes(
         
         # Check for new documents
         new_documents = db.exec(
-            select(Document).where(Document.created_at > since)
-            .order_by(Document.created_at)
+            select(Document).where(
+                Document.created_at > since,
+                Document.project_id == project_id
+            ).order_by(Document.created_at)
         ).all()
         
         for doc in new_documents:
@@ -55,7 +58,8 @@ def get_changes(
         updated_documents = db.exec(
             select(Document).where(
                 Document.updated_at > since,
-                Document.updated_at != Document.created_at  # Exclude newly created
+                Document.updated_at != Document.created_at,  # Exclude newly created
+                Document.project_id == project_id
             ).order_by(Document.updated_at)
         ).all()
         
@@ -73,9 +77,16 @@ def get_changes(
             if doc.updated_at > latest_timestamp:
                 latest_timestamp = doc.updated_at
         
-        # Check for task status changes via changelog
+        # Check for task status changes via changelog (filtered by project)
         task_changes = db.exec(
-            select(Changelog).where(Changelog.changed_at > since)
+            select(Changelog)
+            .join(Task, Changelog.task_id == Task.id)
+            .join(Feature, Task.feature_id == Feature.id)
+            .join(Epic, Feature.epic_id == Epic.id)
+            .where(
+                Changelog.changed_at > since,
+                Epic.project_id == project_id
+            )
             .order_by(Changelog.changed_at)
         ).all()
         

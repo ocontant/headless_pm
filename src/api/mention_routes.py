@@ -13,12 +13,13 @@ router = APIRouter(prefix="/api/v1/mentions", tags=["Mentions"], dependencies=[D
     summary="Get mentions",
     description="Get mentions for a specific agent or all agents if agent_id is not provided")
 def get_mentions(
+    project_id: int = Query(..., description="Project ID to filter mentions"),
     agent_id: Optional[str] = Query(None, description="Agent ID to get mentions for (optional - returns all mentions if not provided)"),
     unread_only: bool = Query(False, description="Only show unread mentions (default: False - shows all mentions)"),
     limit: int = Query(50, description="Maximum number of mentions to return"),
     db: Session = Depends(get_session)
 ):
-    query = select(Mention)
+    query = select(Mention).where(Mention.project_id == project_id)
     
     # Only filter by agent_id if provided
     if agent_id:
@@ -63,18 +64,24 @@ def get_mentions(
     summary="Get mentions by role",
     description="Get mentions for all agents of a specific role, or all mentions if no role specified")
 def get_mentions_by_role(
+    project_id: int = Query(..., description="Project ID to filter mentions"),
     role: Optional[str] = Query(None, description="Role to get mentions for (e.g., 'backend_dev', 'qa', etc.). If not provided, returns all mentions."),
     unread_only: bool = Query(False, description="Only show unread mentions (default: False - shows all mentions)"),
     limit: int = Query(50, description="Maximum number of mentions to return"),
     db: Session = Depends(get_session)
 ):
     # Start with base query
-    query = select(Mention)
+    query = select(Mention).where(Mention.project_id == project_id)
     
     # Filter by role if specified
     if role:
-        # Get all agents with the specified role
-        agents_with_role = db.exec(select(Agent).where(Agent.role == role)).all()
+        # Get all agents with the specified role in this project
+        agents_with_role = db.exec(
+            select(Agent).where(
+                Agent.role == role,
+                Agent.project_id == project_id
+            )
+        ).all()
         agent_ids = [agent.agent_id for agent in agents_with_role]
         
         if not agent_ids:

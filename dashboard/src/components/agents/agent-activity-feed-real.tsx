@@ -80,13 +80,13 @@ function ActivityEventCard({ event }: { event: ActivityEvent }) {
         </Badge>
       </div>
       
-      <div>
-        <h4 className="text-sm font-medium">{event.title}</h4>
-        <p className="text-xs text-muted-foreground mt-1">{event.description}</p>
+      <div className="min-w-0">
+        <h4 className="text-sm font-medium truncate">{event.title}</h4>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
         {event.agent && (
-          <p className="text-xs text-muted-foreground mt-1">
-            <User className="h-3 w-3 inline mr-1" />
-            {event.agent}
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            <User className="h-3 w-3 inline mr-1 shrink-0" />
+            <span className="truncate">{event.agent}</span>
           </p>
         )}
       </div>
@@ -192,7 +192,7 @@ export function AgentActivityFeed() {
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-full max-h-[600px] flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Live Activity Feed</CardTitle>

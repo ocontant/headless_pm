@@ -14,7 +14,8 @@ def create_mentions_for_document(
     db: Session,
     document_id: int,
     content: str,
-    created_by: str
+    created_by: str,
+    project_id: int
 ) -> List[Mention]:
     """Create mention records for all @mentions in document content."""
     mentioned_agents = extract_mentions(content)
@@ -22,6 +23,7 @@ def create_mentions_for_document(
     
     for agent_id in mentioned_agents:
         mention = Mention(
+            project_id=project_id,
             document_id=document_id,
             mentioned_agent_id=agent_id,
             created_by=created_by
@@ -35,7 +37,8 @@ def create_mentions_for_task(
     db: Session,
     task_id: int,
     content: str,
-    created_by: str
+    created_by: str,
+    project_id: int
 ) -> List[Mention]:
     """Create mention records for all @mentions in task content."""
     mentioned_agents = extract_mentions(content)
@@ -43,6 +46,7 @@ def create_mentions_for_task(
     
     for agent_id in mentioned_agents:
         mention = Mention(
+            project_id=project_id,
             task_id=task_id,
             mentioned_agent_id=agent_id,
             created_by=created_by
