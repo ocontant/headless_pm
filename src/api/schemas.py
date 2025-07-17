@@ -306,6 +306,9 @@ class ServiceResponse(BaseModel):
     last_ping_success: Optional[bool] = None
     meta_data: Optional[Dict[str, Any]] = None
     updated_at: datetime
+
+class ProjectDocCreateRequest(BaseModel):
+    content: str = Field(..., description="File content")
     
     model_config = ConfigDict(from_attributes=True)
 

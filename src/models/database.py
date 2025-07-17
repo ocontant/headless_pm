@@ -48,13 +48,21 @@ def ensure_default_project():
         ).first()
         
         if not headless_pm:
+            # Import project utilities for path generation
+            from src.services.project_utils import ensure_project_directories, get_project_docs_path, get_project_shared_path, get_project_instructions_path
+            
+            project_name = "Headless-PM"
+            
+            # Ensure project directories exist
+            ensure_project_directories(project_name)
+            
             # Create the default Headless-PM project
             default_project = Project(
-                name="Headless-PM",
+                name=project_name,
                 description="Headless PM application development and infrastructure",
-                shared_path="./shared",
-                instructions_path="./agents/mcp",
-                project_docs_path="./docs",
+                shared_path=get_project_shared_path(project_name),
+                instructions_path=get_project_instructions_path(project_name),
+                project_docs_path=get_project_docs_path(project_name),
                 code_guidelines_path="./CLAUDE.md",
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc)

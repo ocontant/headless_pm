@@ -36,6 +36,10 @@ cp env-example .env
 # Initialize database
 python -m src.cli.main init
 python -m src.cli.main seed  # Optional: add sample data
+
+# Database initialization automatically creates:
+# - Default "Headless-PM" project (ID: 1)
+# - dashboard-user agent (project_pm role, senior level)
 ```
 
 ### Running the Application
@@ -165,6 +169,11 @@ Headless PM is a REST API for LLM agent task coordination with document-based co
 ### Enhanced Features
 - **Multi-Project Architecture**: Complete project isolation with proper relationships
 - **Epic/Feature/Task Hierarchy**: Three-level project organization within projects
+- **Enhanced Task Creation UI**: Complete Epic → Feature → Task creation flow from single dialog
+  - Modal-on-modal UI pattern with + icons beside dropdowns
+  - Automatic selection of newly created parent entities
+  - No pre-existing Epic/Feature requirement for task creation
+- **Automatic Agent Initialization**: dashboard-user agent created during database setup
 - **Documents Table**: Agent communication with mention detection
 - **Service Registry**: Track microservices with heartbeat monitoring and ping URLs
 - **Mentions System**: @username notifications across documents and tasks
@@ -193,6 +202,11 @@ headless-pm/
 ├── dashboard/             # Next.js web dashboard
 │   ├── src/               # Dashboard source code
 │   └── package.json       # Dashboard dependencies
+├── projects/              # Project-specific directories
+│   └── {project_name}/    # Individual project workspace (sanitized name)
+│       ├── docs/          # Project documentation (API-managed)
+│       ├── shared/        # Shared project files
+│       └── instructions/  # Agent instructions for project
 ├── tests/                 # Test files
 ├── migrations/            # Database migration scripts
 │   ├── add_agent_status_column.py
@@ -209,7 +223,7 @@ headless-pm/
 │   ├── stop_services.sh   # Stop and cleanup
 │   └── check_services.sh  # Health monitoring
 ├── setup/                 # Installation and setup scripts
-├── docs/                  # Project documentation
+├── docs/                  # Application documentation
 │   ├── dashboard/         # Dashboard-specific docs
 │   └── images/            # Dashboard screenshots
 └── headless_pm_client.py  # Python CLI client
@@ -252,6 +266,17 @@ headless-pm/
 - `GET /api/v1/services` - List all services with health status
 - `POST /api/v1/services/{name}/heartbeat` - Send service heartbeat
 - `DELETE /api/v1/services/{name}` - Unregister service
+
+### Project Documentation
+- `GET /api/v1/projects/{id}/docs` - List project documentation files
+- `GET /api/v1/projects/{id}/docs/{file_path}` - Get project documentation file  
+- `POST /api/v1/projects/{id}/docs/{file_path}` - Create/update project documentation file
+
+**Security Features:**
+- All filenames and paths are sanitized for security
+- Shell special characters are removed
+- Path traversal attacks prevented
+- Input validation prevents injection attacks
 
 ### Changes & Updates
 - `GET /api/v1/changes` - Poll for changes since timestamp
@@ -305,11 +330,14 @@ python -m src.cli.main sanity-check
 - ✅ **Documentation**: Agent instructions and workflow guides
 
 ### Key Implementation Details
-- **Task Organization**: Epic → Feature → Task hierarchy
+- **Task Organization**: Epic → Feature → Task hierarchy with complete UI creation flow
+- **Task Creation**: Enhanced UI allows creating entire hierarchy from single dialog
 - **Task Difficulty Levels**: junior, senior, principal
 - **Task Complexity**: major (requires PR), minor (direct commit)
 - **Agent Communication**: Via documents with @mention detection
 - **Agent Types**: Client connections and MCP connections
+- **Agent Initialization**: dashboard-user automatically created during database setup
+- **Project Support**: Dynamic project_id resolution, no hardcoded values
 - **Service Monitoring**: Heartbeat-based health tracking with optional ping URLs
 - **Change Detection**: Efficient polling since timestamp
 - **Git Integration**: Automated workflow based on task complexity

@@ -4,6 +4,7 @@ from datetime import datetime
 
 from src.models.models import Project, Agent, Epic, Task, Document, Service
 from src.api.schemas import ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse
+from src.services.project_utils import ensure_project_directories, get_project_docs_path, get_project_shared_path, get_project_instructions_path
 from fastapi import HTTPException
 
 
@@ -14,12 +15,15 @@ def create_project(request: ProjectCreateRequest, db: Session) -> Project:
     if existing:
         raise HTTPException(status_code=400, detail=f"Project with name '{request.name}' already exists")
     
+    # Ensure project directories exist and get name-based paths
+    ensure_project_directories(request.name)
+    
     project = Project(
         name=request.name,
         description=request.description,
-        shared_path=request.shared_path,
-        instructions_path=request.instructions_path,
-        project_docs_path=request.project_docs_path,
+        shared_path=get_project_shared_path(request.name),
+        instructions_path=get_project_instructions_path(request.name),
+        project_docs_path=get_project_docs_path(request.name),
         code_guidelines_path=request.code_guidelines_path
     )
     
