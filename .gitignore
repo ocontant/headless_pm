@@ -1,6 +1,8 @@
 # Environment variables
+.env_local
 .env
 src/pydantic_llm_tester/.env
+
 
 # Python
 __pycache__/
@@ -14,7 +16,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -34,7 +35,6 @@ venv/
 env/
 ENV/
 .venv/
-
 claude_venv/
 
 # Database files
