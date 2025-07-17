@@ -21,8 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { AgentRole, TaskDifficulty, TaskComplexity } from '@/lib/types';
+import { EpicCreateModal } from './epic-create-modal';
+import { FeatureCreateModal } from './feature-create-modal';
 
 interface TaskCreateDialogProps {
   open: boolean;
@@ -36,10 +38,14 @@ export function TaskCreateDialog({
   onTaskCreated 
 }: TaskCreateDialogProps) {
   const { client } = useApi();
-  const { data: epics } = useEpics();
+  const { data: epics, refetch: refetchEpics } = useEpics();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEpicId, setSelectedEpicId] = useState<string>('');
-  const { data: features } = useFeatures(selectedEpicId ? parseInt(selectedEpicId) : undefined);
+  const { data: features, refetch: refetchFeatures } = useFeatures(selectedEpicId ? parseInt(selectedEpicId) : undefined);
+  
+  // Modal states
+  const [showEpicModal, setShowEpicModal] = useState(false);
+  const [showFeatureModal, setShowFeatureModal] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -64,8 +70,24 @@ export function TaskCreateDialog({
       });
       setSelectedEpicId('');
       setErrors({});
+      setShowEpicModal(false);
+      setShowFeatureModal(false);
     }
   }, [open]);
+
+  // Handle Epic Creation Success
+  const handleEpicCreated = async (epicId: number) => {
+    await refetchEpics();
+    setSelectedEpicId(epicId.toString());
+    // Clear any existing feature selection since we have a new epic
+    setFormData(prev => ({ ...prev, feature_id: '' }));
+  };
+
+  // Handle Feature Creation Success
+  const handleFeatureCreated = async (featureId: number) => {
+    await refetchFeatures();
+    setFormData(prev => ({ ...prev, feature_id: featureId.toString() }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,10 +129,10 @@ export function TaskCreateDialog({
       });
 
       onTaskCreated();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create task:', error);
       setErrors({ 
-        submit: error.response?.data?.detail || 'Failed to create task. Please try again.' 
+        submit: (error as any)?.response?.data?.detail || 'Failed to create task. Please try again.' 
       });
     } finally {
       setIsLoading(false);
@@ -166,7 +188,19 @@ export function TaskCreateDialog({
 
             {/* Epic Selection */}
             <div className="space-y-2">
-              <Label htmlFor="epic">Epic *</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="epic">Epic *</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowEpicModal(true)}
+                  title="Create new epic"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               <Select value={selectedEpicId} onValueChange={setSelectedEpicId}>
                 <SelectTrigger className={!selectedEpicId ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Select an epic" />
@@ -188,7 +222,20 @@ export function TaskCreateDialog({
 
             {/* Feature Selection */}
             <div className="space-y-2">
-              <Label htmlFor="feature">Feature *</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="feature">Feature *</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  onClick={() => setShowFeatureModal(true)}
+                  disabled={!selectedEpicId}
+                  title={selectedEpicId ? "Create new feature" : "Select an epic first"}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
               <Select 
                 value={formData.feature_id} 
                 onValueChange={(value) => handleChange('feature_id', value)}
@@ -301,6 +348,22 @@ export function TaskCreateDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      {/* Epic Creation Modal */}
+      <EpicCreateModal
+        open={showEpicModal}
+        onOpenChange={setShowEpicModal}
+        onEpicCreated={handleEpicCreated}
+      />
+
+      {/* Feature Creation Modal */}
+      <FeatureCreateModal
+        open={showFeatureModal}
+        onOpenChange={setShowFeatureModal}
+        epicId={selectedEpicId ? parseInt(selectedEpicId) : null}
+        epicName={epics?.find(e => e.id.toString() === selectedEpicId)?.name}
+        onFeatureCreated={handleFeatureCreated}
+      />
     </Dialog>
   );
 }

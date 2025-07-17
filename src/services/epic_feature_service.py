@@ -1,7 +1,7 @@
 from sqlmodel import Session, select
 from typing import List
 
-from src.models.models import Epic, Feature, Task
+from src.models.models import Epic, Feature, Task, Agent
 from src.models.enums import TaskStatus, AgentRole
 from src.api.schemas import EpicCreateRequest, EpicResponse, FeatureCreateRequest, FeatureResponse
 from src.api.dependencies import HTTPException
@@ -23,11 +23,17 @@ def create_epic(request: EpicCreateRequest, agent_id: str, db: Session) -> EpicR
     Raises:
         HTTPException: If agent doesn't have required role
     """
-    # Verify agent is PM or architect
-    verify_agent_role(agent_id, [AgentRole.PM, AgentRole.ARCHITECT], db)
+    # First get the agent to determine their project_id
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Create epic
+    # Verify agent is PM or architect using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM, AgentRole.ARCHITECT], db)
+    
+    # Create epic with the agent's project_id
     epic = Epic(
+        project_id=agent.project_id,
         name=request.name,
         description=request.description
     )
@@ -102,8 +108,13 @@ def create_feature(request: FeatureCreateRequest, agent_id: str, db: Session) ->
     Raises:
         HTTPException: If agent doesn't have required role or epic not found
     """
-    # Verify agent is PM or architect
-    verify_agent_role(agent_id, [AgentRole.PM, AgentRole.ARCHITECT], db)
+    # First get the agent to determine their project_id
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Verify agent is PM or architect using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM, AgentRole.ARCHITECT], db)
     
     # Verify epic exists
     epic = db.get(Epic, request.epic_id)
@@ -152,8 +163,13 @@ def delete_epic(epic_id: int, agent_id: str, db: Session) -> dict:
     Raises:
         HTTPException: If unauthorized or epic not found
     """
-    # Verify agent is PM
-    verify_agent_role(agent_id, [AgentRole.PM], db)
+    # First get the agent to determine their project_id
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Verify agent is PM using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM], db)
     
     epic = db.exec(select(Epic).where(Epic.id == epic_id)).first()
     if not epic:
@@ -180,8 +196,13 @@ def delete_feature(feature_id: int, agent_id: str, db: Session) -> dict:
     Raises:
         HTTPException: If unauthorized or feature not found
     """
-    # Verify agent is PM
-    verify_agent_role(agent_id, [AgentRole.PM], db)
+    # First get the agent to determine their project_id
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Verify agent is PM using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM], db)
     
     feature = db.exec(select(Feature).where(Feature.id == feature_id)).first()
     if not feature:

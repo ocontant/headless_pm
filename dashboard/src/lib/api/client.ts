@@ -135,11 +135,13 @@ export class HeadlessPMClient {
     return data;
   }
 
-  async createEpic(name: string, description?: string, pmId?: string) {
-    const { data } = await this.client.post<Epic>('/epics', {
+  async createEpic(name: string, description?: string, agentId: string = 'dashboard-user') {
+    const params = new URLSearchParams();
+    params.append('agent_id', agentId);
+    
+    const { data } = await this.client.post<Epic>(`/epics?${params.toString()}`, {
       name,
-      description,
-      pm_id: pmId
+      description
     });
     return data;
   }
@@ -155,8 +157,11 @@ export class HeadlessPMClient {
     return data;
   }
 
-  async createFeature(epicId: number, name: string, description?: string) {
-    const { data } = await this.client.post<Feature>('/features', {
+  async createFeature(epicId: number, name: string, description?: string, agentId: string = 'dashboard-user') {
+    const params = new URLSearchParams();
+    params.append('agent_id', agentId);
+    
+    const { data } = await this.client.post<Feature>(`/features?${params.toString()}`, {
       epic_id: epicId,
       name,
       description
@@ -182,8 +187,11 @@ export class HeadlessPMClient {
     assigned_role?: AgentRole;
     difficulty: string;
     complexity: string;
-  }) {
-    const { data } = await this.client.post<Task>('/tasks/create', task);
+  }, agentId: string = 'dashboard-user') {
+    const params = new URLSearchParams();
+    params.append('agent_id', agentId);
+    
+    const { data } = await this.client.post<Task>(`/tasks/create?${params.toString()}`, task);
     return data;
   }
 

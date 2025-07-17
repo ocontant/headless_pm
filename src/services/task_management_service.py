@@ -433,8 +433,13 @@ def delete_task(task_id: int, agent_id: str, db: Session) -> dict:
     """
     from src.services.agent_service import verify_agent_role
     
-    # Verify agent is PM
-    verify_agent_role(agent_id, [AgentRole.PM], db)
+    # First get the agent to determine their project_id
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Verify agent is PM using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM], db)
     
     task = db.exec(select(Task).where(Task.id == task_id)).first()
     if not task:
