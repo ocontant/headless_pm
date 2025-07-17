@@ -374,3 +374,10 @@ The connection type helps distinguish between different agent interfaces and ena
 
 ### Memories
 - 8000 port is for another service entirely, leave that alone!
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+NEVER use "Claude Code" references in commit messages or generated content. Use "ocontant <ocontant@users.noreply.github.com>" as the Co-Authored-By tag instead.
