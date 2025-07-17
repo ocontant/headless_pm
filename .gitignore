@@ -37,7 +37,14 @@ ENV/
 
 claude_venv/
 
+# Database files
 *.db
+*.db.backup*
+*.backup_*
+
+# Runtime files
+run/*.pid
+run/*.log
 
 # Testing
 .pytest_cache/
