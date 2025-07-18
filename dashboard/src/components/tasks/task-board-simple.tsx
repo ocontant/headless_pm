@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Task, TaskStatus } from '@/lib/types';
 import { useTasks, useUpdateTaskStatus, useAgents } from '@/lib/hooks/useApi';
 
@@ -90,18 +91,18 @@ export function SimpleTaskBoard() {
       {/* Agent Selector */}
       <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
         <span className="text-sm font-medium">Acting as Agent:</span>
-        <select 
-          value={selectedAgentId} 
-          onChange={(e) => setSelectedAgentId(e.target.value)}
-          className="px-3 py-1 border rounded-md text-sm"
-        >
-          <option value="">Select an agent...</option>
-          {agents?.map(agent => (
-            <option key={agent.id} value={agent.agent_id}>
-              {agent.name || agent.agent_id} ({agent.role})
-            </option>
-          ))}
-        </select>
+        <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+          <SelectTrigger className="w-fit min-w-[200px]">
+            <SelectValue placeholder="Select an agent..." />
+          </SelectTrigger>
+          <SelectContent>
+            {agents?.map(agent => (
+              <SelectItem key={agent.id} value={agent.agent_id}>
+                {agent.name || agent.agent_id} ({agent.role})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {!selectedAgentId && (
           <span className="text-xs text-amber-600">⚠️ Select an agent to move tasks</span>
         )}
