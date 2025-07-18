@@ -16,7 +16,7 @@ export class HeadlessPMClient {
     const storedKey = typeof window !== 'undefined' ? localStorage.getItem('apiKey') : null;
     
     const finalUrl = storedUrl || baseURL;
-    const apiKeyToUse = storedKey || apiKey || process.env.NEXT_PUBLIC_API_KEY;
+    const apiKeyToUse = storedKey || apiKey || process.env.API_KEY;
     
     this.client = axios.create({
       baseURL: `${finalUrl}/api/v1`,

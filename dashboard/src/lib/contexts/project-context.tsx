@@ -23,7 +23,7 @@ interface ProjectProviderProps {
 // Create API client instance
 const apiClient = new HeadlessPMClient(
   process.env.NEXT_PUBLIC_API_URL,
-  process.env.NEXT_PUBLIC_API_KEY
+  process.env.API_KEY
 );
 
 export function ProjectProvider({ children }: ProjectProviderProps) {

@@ -4,7 +4,7 @@ export async function GET() {
   try {
     // Test connection to the main API with detailed info
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:6969';
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
+    const apiKey = process.env.API_KEY;
     
     let apiDetails: any = {};
     
