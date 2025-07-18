@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Docker container support
+  output: 'standalone',
+  // Enable optimizations for production builds
+  experimental: {
+    serverComponentsExternalPackages: ['axios'],
+  },
 };
 
 export default nextConfig;

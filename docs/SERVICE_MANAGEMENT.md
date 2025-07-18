@@ -4,49 +4,136 @@ This guide explains how to use the service management scripts for Headless PM.
 
 ## Overview
 
-Headless PM uses a pidfile-based service management system to monitor and control processes. The system includes several scripts in the `scripts/` folder:
+Headless PM provides two deployment options:
 
-- `manage_services.sh` - Main management script
+### 🐳 **Docker Deployment (Recommended)**
+- **Component-based architecture** with individual Dockerfiles
+- **Container orchestration** via docker-compose
+- **Management script**: `./scripts/docker_manage.sh`
+- **Persistent storage** outside containers
+
+### 🔧 **Traditional Deployment**
+- **Pidfile-based service management** for direct process control
+- **Management script**: `./scripts/manage_services.sh`
+- **Direct Python process execution**
+
+## Docker Management (Recommended)
+
+The Docker deployment uses a component-based architecture where each service runs in its own container:
+
+### Management Scripts
+- `docker_manage.sh` - Complete Docker container management
+- `manage_services.sh` - Traditional service management (for development)
 - `start_services.sh` - Start services with pidfile management
 - `stop_services.sh` - Stop services and cleanup
 - `check_services.sh` - Monitoring and health checks
 
-## Available Services
+## Available Components/Services
 
-### 📚 API Server
+### 📚 API Component (`api/`)
 - **Port**: 6969 (configurable via `SERVICE_PORT`)
 - **Description**: Main REST API for Headless PM
 - **Health Check**: `http://localhost:6969/health`
 - **Documentation**: `http://localhost:6969/api/v1/docs`
+- **Container**: `headless-pm-api`
+- **Dockerfile**: `api/Dockerfile`
 
-### 🔌 MCP Server
+### 🔌 MCP Component (`mcp/`)
 - **Port**: 6968 (configurable via `MCP_PORT`)
 - **Description**: Integration server for Claude Code
-- **Health Check**: `http://localhost:6968`
-- **Protocol**: SSE (Server-Sent Events)
+- **Health Check**: Process-based (pgrep)
+- **Protocol**: Multiple (HTTP, SSE, WebSocket, STDIO)
+- **Container**: `headless-pm-mcp`
+- **Dockerfile**: `mcp/Dockerfile`
 
-### 🖥️ Dashboard
+### 🖥️ Dashboard Component (`dashboard/`)
 - **Port**: 3001 (configurable via `DASHBOARD_PORT`)
 - **Description**: Web interface for project management
-- **Health Check**: `http://localhost:3001`
+- **Health Check**: `http://localhost:3001/api/health`
 - **Framework**: Next.js with Turbopack
+- **Container**: `headless-pm-dashboard`
+- **Dockerfile**: `dashboard/Dockerfile`
+
+### 🗂️ Shared Core (`shared/`)
+- **Description**: Common models, services, and schemas
+- **Mount Point**: Mounted to all containers as `/app/shared`
+- **Contains**: Database models, business logic, API schemas
+
+## Docker Component Management
+
+### Quick Start
+
+```bash
+# Start all components
+./scripts/docker_manage.sh start
+
+# Check component status
+./scripts/docker_manage.sh status
+
+# View logs for all components
+./scripts/docker_manage.sh logs
+
+# Stop all components
+./scripts/docker_manage.sh stop
+```
+
+### Component-Specific Operations
+
+```bash
+# Build specific component
+./scripts/docker_manage.sh build api
+
+# Restart specific component
+./scripts/docker_manage.sh restart mcp
+
+# View logs for specific component
+./scripts/docker_manage.sh logs dashboard
+
+# Open shell in component container
+./scripts/docker_manage.sh shell api
+```
+
+### Database Operations
+
+```bash
+# Backup database
+./scripts/docker_manage.sh backup
+
+# Restore database from backup
+./scripts/docker_manage.sh restore backup_20250717_123456.db
+
+# Reset all data (WARNING: destructive)
+./scripts/docker_manage.sh reset
+```
+
+### Health Monitoring
+
+```bash
+# Check health of all components
+./scripts/docker_manage.sh health
+
+# Monitor resource usage
+docker stats headless-pm-api headless-pm-mcp headless-pm-dashboard
+```
 
 ## Configuration
 
 ### Environment Variables (.env)
 
 ```bash
-# Service ports
+# Service ports (Docker)
 SERVICE_PORT=6969      # API Server
-MCP_PORT=6968         # MCP Server
+MCP_PORT=6968         # MCP Server  
 DASHBOARD_PORT=3001   # Web Dashboard
 
-# Database configuration
-DB_CONNECTION="sqlite"
-DATABASE_URL="sqlite:///headless-pm.db"
+# Database configuration (Docker)
+DATABASE_URL="sqlite:///app/database/headless-pm.db"
 
 # API Security
 API_KEY="your-secret-key"
+
+# Docker-specific settings
+COMPOSE_PROJECT_NAME="headless-pm"
 ```
 
 **Important**: Services only start if their port is defined in `.env`. To disable a service, comment out or remove its port variable.

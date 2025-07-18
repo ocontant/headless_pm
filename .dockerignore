@@ -1,0 +1,108 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+claude_venv/
+ENV/
+env/
+.venv
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+run/
+
+# Database files (we'll mount them)
+*.db
+*.sqlite
+*.sqlite3
+
+# Node.js (for dashboard)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Next.js
+.next/
+.nuxt/
+out/
+dist/
+
+# Testing
+.coverage
+.pytest_cache/
+coverage/
+test-results/
+playwright-report/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Backup files
+*.backup
+*.bak
+
+# Environment files (we'll copy explicitly)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Project specific
+projects/
+migrations/*.db
+screenshots/
+agents/

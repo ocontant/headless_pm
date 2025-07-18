@@ -1,0 +1,50 @@
+version: '3.8'
+
+# Production overrides for docker-compose.yml
+services:
+  api:
+    environment:
+      - DATABASE_URL=sqlite:///app/data/headless-pm.db
+      - ENVIRONMENT=production
+    volumes:
+      - headless-pm-data:/app/data
+      - headless-pm-projects:/app/projects
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  mcp:
+    environment:
+      - ENVIRONMENT=production
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  dashboard:
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:6969
+      - NEXT_TELEMETRY_DISABLED=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+volumes:
+  headless-pm-data:
+    driver: local
+  headless-pm-projects:
+    driver: local

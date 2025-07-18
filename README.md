@@ -8,16 +8,28 @@ I use this with Claude Code, but it should work with any LLM Agent.
 
 ## ⚡ Quick Start
 
+### Using Docker (Recommended)
 ```bash
 # Clone the repository
 git clone <repository>
 cd headless-pm
 
+# Start all services with Docker
+./scripts/docker_manage.sh start
+
+# Access services:
+# - API: http://localhost:6969
+# - Dashboard: http://localhost:3001
+# - MCP: http://localhost:6968
+```
+
+### Traditional Setup
+```bash
 # Run universal setup script (handles platform-specific requirements)
 ./setup/universal_setup.sh
 
 # Start the server (handles database setup automatically)
-./start.sh
+./scripts/manage_services.sh start
 ```
 
 ### Platform-Specific Setup Notes
@@ -71,16 +83,77 @@ The start script automatically checks dependencies, initializes database, and st
 
 ## 🏗️ Architecture
 
+### Component-Based Architecture
+Headless PM is built with a containerized, component-based architecture:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Dashboard     │    │   API Server    │    │   MCP Server    │
+│   (Port 3001)   │────│   (Port 6969)   │────│   (Port 6968)   │
+│   Next.js UI    │    │   FastAPI Core  │    │   Claude Code   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                     ┌─────────────────┐
+                     │   Shared Core   │
+                     │  Models/Services│
+                     └─────────────────┘
+                                 │
+                     ┌─────────────────┐
+                     │    Database     │
+                     │   SQLite/MySQL  │
+                     └─────────────────┘
+```
+
+### Core Features
 - **FastAPI** REST API with OpenAPI documentation
 - **SQLModel** ORM with SQLite/MySQL support
 - **Document-driven** agent communication
 - **Polling-based** updates (no WebSockets)
 - **File-based** agent instructions
 - **Stateless** agent design
+- **Containerized deployment** with Docker
+- **Independent component scaling**
 
 ## 📋 Detailed Setup
 
-### Manual Environment Setup (if not using universal_setup.sh)
+### Docker Deployment (Recommended)
+
+**Quick Start with Docker:**
+```bash
+# Start all services
+./scripts/docker_manage.sh start
+
+# View logs
+./scripts/docker_manage.sh logs
+
+# Check health
+./scripts/docker_manage.sh health
+
+# Stop services
+./scripts/docker_manage.sh stop
+```
+
+**Available Docker Commands:**
+```bash
+# Build specific component
+./scripts/docker_manage.sh build api
+
+# Restart specific service
+./scripts/docker_manage.sh restart dashboard
+
+# Open shell in container
+./scripts/docker_manage.sh shell api
+
+# Backup database
+./scripts/docker_manage.sh backup
+
+# Clean up everything
+./scripts/docker_manage.sh clean
+```
+
+### Traditional Setup (Development)
 
 **For Claude Code:**
 ```bash
@@ -98,24 +171,18 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r setup/requirements.txt
 ```
 
-### Configuration
+**Configuration and Startup:**
 ```bash
 # Configure environment (if not already done by setup script)
 cp env-example .env
 # Edit .env with your settings
 
 # Initialize database (if needed)
-python -m src.cli.main init
-python -m src.cli.main seed  # Optional: add sample data
-```
+python -m cli.src.main init
+python -m cli.src.main seed  # Optional: add sample data
 
-### 3. Run Application
-```bash
-# Start API server
-uvicorn src.main:app --reload --port 6969
-
-# Or use CLI
-python -m src.cli.main serve --port 6969
+# Start services
+./scripts/manage_services.sh start
 ```
 
 ### 4. Setup on your own project (most common use case)
@@ -327,23 +394,58 @@ python migrations/migrate_to_text_columns.py
 ## 📁 Project Structure
 
 ```
-headless-pm/
-├── src/
-│   ├── api/                 # FastAPI routes and schemas
-│   ├── models/             # SQLModel database models
-│   ├── services/           # Business logic and utilities
-│   ├── cli/               # Command-line interface
-│   ├── mcp/               # MCP server implementation
-│   └── main.py            # FastAPI application
-├── tests/                 # Test suite
-├── migrations/            # Database migration scripts
-├── agent_instructions/    # Role-specific agent guides
-├── agents/               # Agent tools and installers
-├── examples/             # Sample workflows and demos
-├── setup/               # Installation and setup scripts
-├── docs/               # Project documentation
-└── headless_pm_client.py  # Python CLI client
+headless-pm/                           # Root project folder
+├── shared/                            # Shared core components (mounted to containers)
+│   ├── models/                        # Database models, enums
+│   ├── services/                      # Business logic services  
+│   └── schemas/                       # API request/response schemas
+├── api/                               # API Server Component
+│   ├── src/                           # API source code
+│   │   ├── routes/                    # API route handlers
+│   │   └── main.py                    # FastAPI application
+│   ├── Dockerfile                     # API container
+│   └── README.md                      # API-specific docs
+├── mcp/                               # MCP Server Component  
+│   ├── src/                           # MCP source code
+│   │   ├── server.py                  # Main MCP server
+│   │   ├── http_server.py             # HTTP transport
+│   │   └── [other transports...]      # SSE, WebSocket, etc.
+│   ├── Dockerfile                     # MCP container
+│   └── README.md                      # MCP-specific docs
+├── dashboard/                         # Web Dashboard
+│   ├── src/                           # Dashboard source
+│   ├── Dockerfile                     # Dashboard container
+│   ├── package.json                   
+│   └── README.md                      # Dashboard-specific docs
+├── cli/                               # CLI Tools Component
+│   ├── src/                           # CLI source code
+│   │   ├── main.py                    # CLI commands
+│   │   └── dashboard.py               # Dashboard utilities
+│   └── README.md                      # CLI-specific docs
+├── database/                          # Database files (outside containers)
+│   └── headless-pm.db                 # SQLite database
+├── migrations/                        # Database migration scripts
+├── projects/                          # Project workspace (mounted to containers)
+├── agents/                            # Agent tools and instructions (mounted)
+├── docs/                              # Project-wide documentation
+├── scripts/                           # Management scripts
+│   ├── docker_manage.sh               # Docker container management
+│   └── manage_services.sh             # Traditional service management
+├── tests/                             # Test suite
+├── setup/                             # Installation and setup scripts
+├── docker-compose.yml                 # Container orchestration
+└── headless_pm_client.py              # Python CLI client
 ```
+
+### Component Architecture
+
+Each component is independently deployable:
+
+- **API Component** (`api/`): Core FastAPI server with all business logic
+- **MCP Component** (`mcp/`): Claude Code integration server
+- **Dashboard Component** (`dashboard/`): Next.js web interface
+- **CLI Component** (`cli/`): Command-line tools and utilities
+- **Shared Core** (`shared/`): Common models, services, and schemas
 
 ## 🤖 Agent Roles
 

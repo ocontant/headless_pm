@@ -1,0 +1,44 @@
+version: '3.8'
+
+# Development overrides for docker-compose.yml
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      target: development
+    volumes:
+      - ./src:/app/src
+      - ./migrations:/app/migrations
+      - ./.env:/app/.env
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=1
+    command: python -m src.main --reload
+    
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      target: development
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=1
+    
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      target: development
+    volumes:
+      - ./dashboard/src:/app/src
+      - ./dashboard/public:/app/public
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:6969
+    command: npm run dev
+    ports:
+      - "3001:3001"

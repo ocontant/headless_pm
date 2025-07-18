@@ -4,7 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Environment Setup
 
-### Automated Setup (Recommended)
+### Docker Deployment (Recommended for Production)
+```bash
+# Quick start with Docker - all components containerized
+./scripts/docker_manage.sh start
+
+# Or manually with docker-compose
+docker-compose up -d
+
+# Access services:
+# - API: http://localhost:6969
+# - Dashboard: http://localhost:3001
+# - MCP: http://localhost:6968
+
+# Component-specific operations
+./scripts/docker_manage.sh build api        # Build API component
+./scripts/docker_manage.sh restart mcp      # Restart MCP component
+./scripts/docker_manage.sh logs dashboard   # View dashboard logs
+./scripts/docker_manage.sh shell api        # Open shell in API container
+
+# Database operations
+./scripts/docker_manage.sh backup           # Backup database
+./scripts/docker_manage.sh restore backup.db # Restore database
+
+# Stop services
+./scripts/docker_manage.sh stop
+```
+
+**Component Structure:**
+- **API Component** (`api/`): FastAPI server with individual Dockerfile
+- **MCP Component** (`mcp/`): Claude Code integration with individual Dockerfile  
+- **Dashboard Component** (`dashboard/`): Next.js web interface with individual Dockerfile
+- **Shared Core** (`shared/`): Common code mounted to all containers
+- **Database** (`database/`): Persistent storage outside containers
+
+For complete Docker documentation, see `docs/DOCKER_INFRASTRUCTURE.md`.
+
+### Automated Setup (Recommended for Development)
 ```bash
 # Run universal setup script - handles platform-specific requirements
 ./setup/universal_setup.sh
@@ -34,8 +70,8 @@ cp env-example .env
 # Edit .env with API keys and database configuration
 
 # Initialize database
-python -m src.cli.main init
-python -m src.cli.main seed  # Optional: add sample data
+python -m cli.src.main init
+python -m cli.src.main seed  # Optional: add sample data
 
 # Database initialization automatically creates:
 # - Default "Headless-PM" project (ID: 1)
