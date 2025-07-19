@@ -106,8 +106,8 @@ class HeadlessPMMCPServer:
                                 },
                                 "role": {
                                     "type": "string",
-                                    "description": "Agent role (frontend_dev, backend_dev, architect, pm, qa)",
-                                    "enum": ["frontend_dev", "backend_dev", "architect", "pm", "qa"]
+                                    "description": "Agent role (frontend_dev, backend_dev, qa, architect, project_pm, ui_admin)",
+                                    "enum": ["frontend_dev", "backend_dev", "qa", "architect", "project_pm", "ui_admin"]
                                 },
                                 "skill_level": {
                                     "type": "string",

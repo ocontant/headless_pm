@@ -345,7 +345,7 @@ def seed(project_id: Optional[int] = typer.Option(None, help="Project ID (if not
         ),
         Document(
             project_id=project.id,
-            doc_type=DocumentType.REPORT,
+            doc_type=DocumentType.CRITICAL_ISSUE,
             author_id="qa_senior_001",
             title="Test Environment Down",
             content="The test environment is currently down. @backend_dev_senior_001 please investigate."

@@ -80,7 +80,7 @@ def ensure_default_project():
             ensure_dashboard_user(headless_pm.id, session)
 
 def ensure_dashboard_user(project_id: int, session: Session):
-    """Ensure the dashboard-user agent exists for the given project."""
+    """Ensure the dashboard-user agent exists for the given project with UI_ADMIN privileges."""
     from .models import Agent  # Import here to avoid circular imports
     from .enums import AgentRole, DifficultyLevel, ConnectionType, AgentStatus
     
@@ -90,22 +90,30 @@ def ensure_dashboard_user(project_id: int, session: Session):
     ).first()
     
     if not dashboard_user:
-        # Create the dashboard-user agent
+        # Create the dashboard-user agent with UI_ADMIN role
         dashboard_agent = Agent(
             agent_id="dashboard-user",
             project_id=project_id,
-            role=AgentRole.PROJECT_PM,
-            level=DifficultyLevel.SENIOR,
-            connection_type=ConnectionType.CLIENT,
+            role=AgentRole.UI_ADMIN,  # Special UI admin role with task editing privileges
+            level=DifficultyLevel.PRINCIPAL,  # Highest level for admin user
+            connection_type=ConnectionType.UI,  # UI connection type
             status=AgentStatus.IDLE,
             last_seen=datetime.now(timezone.utc),
             last_activity=datetime.now(timezone.utc)
         )
         session.add(dashboard_agent)
         session.commit()
-        print("✅ Created dashboard-user agent")
+        print("✅ Created dashboard-user agent with UI_ADMIN privileges")
     else:
-        print("✅ Dashboard-user agent already exists")
+        # Update existing dashboard-user to have correct role and connection type
+        if dashboard_user.role != AgentRole.UI_ADMIN or dashboard_user.connection_type != ConnectionType.UI:
+            dashboard_user.role = AgentRole.UI_ADMIN
+            dashboard_user.connection_type = ConnectionType.UI
+            dashboard_user.level = DifficultyLevel.PRINCIPAL
+            session.commit()
+            print("✅ Updated dashboard-user agent to UI_ADMIN privileges")
+        else:
+            print("✅ Dashboard-user agent already exists with correct privileges")
 
 def get_session() -> Generator[Session, None, None]:
     with Session(engine) as session:

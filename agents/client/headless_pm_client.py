@@ -324,7 +324,7 @@ def validate_args(args, parser):
         if not hasattr(args, 'role') or not args.role:
             print("Error: tasks next requires --role argument")
             print("Example: python3 headless_pm_client.py tasks next --role backend_dev --level senior")
-            print("\nAvailable roles: frontend_dev, backend_dev, qa, architect, pm")
+            print("\nAvailable roles: frontend_dev, backend_dev, qa, architect, project_pm")
             sys.exit(1)
         if not hasattr(args, 'level') or not args.level:
             print("Error: tasks next requires --level argument")
@@ -654,11 +654,11 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     register_parser.add_argument("--agent-id", required=True, help="Unique agent identifier")
     register_parser.add_argument("--project-id", type=int, required=True, help="Project ID")
     register_parser.add_argument("--role", required=True, 
-                               choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"])
+                               choices=["frontend_dev", "backend_dev", "qa", "architect", "project_pm", "ui_admin"])
     register_parser.add_argument("--level", required=True, 
                                choices=["junior", "senior", "principal"])
     register_parser.add_argument("--connection-type", default="client", 
-                               choices=["client", "mcp"], help="Connection type")
+                               choices=["client", "mcp", "ui"], help="Connection type")
     
     # List agents
     agents_parser = subparsers.add_parser("agents", help="Agent management")
@@ -717,7 +717,7 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     task_create.add_argument("--title", required=True, help="Task title")
     task_create.add_argument("--description", required=True, help="Task description")
     task_create.add_argument("--target-role", required=True, 
-                           choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"])
+                           choices=["frontend_dev", "backend_dev", "qa", "architect", "project_pm", "ui_admin"])
     task_create.add_argument("--difficulty", required=True, 
                            choices=["junior", "senior", "principal"])
     task_create.add_argument("--complexity", required=True, 
@@ -729,7 +729,7 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
                                     help="Get next available task for your role/level",
                                     epilog="Example: python3 headless_pm_client.py tasks next --role backend_dev --level senior")
     task_next.add_argument("--role", required=True, 
-                          choices=["frontend_dev", "backend_dev", "qa", "architect", "pm"],
+                          choices=["frontend_dev", "backend_dev", "qa", "architect", "project_pm", "ui_admin"],
                           help="Your agent role (REQUIRED)")
     task_next.add_argument("--level", required=True, 
                           choices=["junior", "senior", "principal"],

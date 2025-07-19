@@ -5,10 +5,8 @@ export enum AgentRole {
   BackendDev = "backend_dev",
   QA = "qa", 
   Architect = "architect",
-  GlobalPM = "global_pm",
   ProjectPM = "project_pm",
-  // Legacy role (deprecated)
-  PM = "pm"
+  UIAdmin = "ui_admin"
 }
 
 export enum SkillLevel {
@@ -19,7 +17,8 @@ export enum SkillLevel {
 
 export enum ConnectionType {
   Client = "client",
-  MCP = "mcp"
+  MCP = "mcp",
+  UI = "ui"
 }
 
 export enum TaskStatus {
@@ -43,6 +42,12 @@ export enum TaskDifficulty {
 export enum TaskComplexity {
   Minor = "minor",
   Major = "major"
+}
+
+export enum TaskType {
+  Regular = "regular",
+  Waiting = "waiting",
+  Management = "management"
 }
 
 export enum AgentStatus {
@@ -146,7 +151,7 @@ export interface Task {
   notes?: string;                   // Added: missing field
   created_at: string;
   updated_at?: string;
-  task_type?: string;               // Added: missing field
+  task_type?: TaskType;             // Added: missing field
   poll_interval?: number;           // Added: missing field
   assigned_agent?: Agent;           // Keep for UI convenience
   comments?: TaskComment[];
@@ -159,6 +164,14 @@ export interface TaskComment {
   content: string;
   created_at: string;
   agent?: Agent;
+}
+
+export interface TaskUpdateRequest {
+  title?: string;
+  description?: string;
+  target_role?: AgentRole;
+  difficulty?: TaskDifficulty;
+  complexity?: TaskComplexity;
 }
 
 export interface Document {
