@@ -77,6 +77,7 @@ class TaskCreateRequest(BaseModel):
     target_role: AgentRole = Field(..., description="Role that should handle this task")
     difficulty: DifficultyLevel = Field(..., description="Task difficulty level")
     complexity: TaskComplexity = Field(TaskComplexity.MAJOR, description="Task complexity (minor = commit to main, major = requires PR)")
+    task_type: TaskType = Field(TaskType.REGULAR, description="Task type (regular = development task, management = planning/analysis)")
     branch: str = Field(..., description="Git branch for this task")
     
     @validator('target_role')
@@ -127,6 +128,43 @@ class TaskStatusUpdateRequest(BaseModel):
 
 class TaskCommentRequest(BaseModel):
     comment: str = Field(..., description="Comment to add to the task")
+
+class TaskUpdateRequest(BaseModel):
+    title: Optional[str] = Field(None, description="Updated task title")
+    description: Optional[str] = Field(None, description="Updated task description")
+    target_role: Optional[AgentRole] = Field(None, description="Updated target role")
+    difficulty: Optional[DifficultyLevel] = Field(None, description="Updated difficulty level")
+    complexity: Optional[TaskComplexity] = Field(None, description="Updated task complexity")
+    
+    @validator('target_role')
+    def validate_target_role(cls, v):
+        if v is not None and isinstance(v, str):
+            # Handle legacy 'pm' role
+            if v.lower() == 'pm':
+                return AgentRole.PROJECT_PM
+            try:
+                return AgentRole(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid target role: {v}. Valid roles: {[r.value for r in AgentRole]}")
+        return v
+    
+    @validator('difficulty')
+    def validate_difficulty(cls, v):
+        if v is not None and isinstance(v, str):
+            try:
+                return DifficultyLevel(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid difficulty level: {v}. Valid levels: {[l.value for l in DifficultyLevel]}")
+        return v
+    
+    @validator('complexity')
+    def validate_complexity(cls, v):
+        if v is not None and isinstance(v, str):
+            try:
+                return TaskComplexity(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid task complexity: {v}. Valid complexities: {[c.value for c in TaskComplexity]}")
+        return v
 
 # Response schemas
 class ProjectResponse(BaseModel):

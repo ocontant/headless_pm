@@ -3,10 +3,40 @@ from typing import List, Optional
 from datetime import datetime
 
 from src.models.models import Agent, Mention, Document, Task, Project
-from src.models.enums import AgentRole, AgentStatus
+from src.models.enums import AgentRole, AgentStatus, ConnectionType
 from src.api.schemas import AgentResponse, MentionResponse, AgentRegisterRequest, AgentAvailabilityResponse
 from src.api.dependencies import HTTPException
 
+# Reserved agent IDs that cannot be claimed by external agents
+RESERVED_AGENT_IDS = ["dashboard-user", "system-admin"]
+RESERVED_ROLES = [AgentRole.UI_ADMIN]
+
+def validate_agent_registration(agent_id: str, role: AgentRole) -> None:
+    """Validate that an agent registration is allowed"""
+    if agent_id in RESERVED_AGENT_IDS:
+        raise HTTPException(403, f"Reserved agent ID '{agent_id}' cannot be claimed by external agents")
+    if role in RESERVED_ROLES:
+        raise HTTPException(403, f"Reserved role '{role.value}' cannot be assigned to external agents")
+
+def can_edit_task_fields(agent_id: str, agent_role: AgentRole) -> bool:
+    """Check if an agent has permission to edit task core fields"""
+    return agent_id == "dashboard-user" and agent_role == AgentRole.UI_ADMIN
+
+def can_edit_task_status(agent_id: str) -> bool:
+    """Check if an agent can update task status (existing behavior)"""
+    return True  # All agents can update task status
+
+def get_agent_by_id(agent_id: str, project_id: int, db: Session) -> Agent:
+    """Get agent by ID and project, raise 404 if not found"""
+    agent = db.exec(select(Agent).where(
+        Agent.agent_id == agent_id,
+        Agent.project_id == project_id
+    )).first()
+    
+    if not agent:
+        raise HTTPException(404, f"Agent '{agent_id}' not found in project {project_id}")
+    
+    return agent
 
 def register_or_update_agent(request: AgentRegisterRequest, db: Session) -> Agent:
     """
@@ -19,6 +49,9 @@ def register_or_update_agent(request: AgentRegisterRequest, db: Session) -> Agen
     Returns:
         The registered or updated agent
     """
+    # Validate agent registration (prevent claiming reserved IDs/roles)
+    validate_agent_registration(request.agent_id, request.role)
+    
     # Check if agent exists in the specified project
     agent = db.exec(select(Agent).where(
         Agent.agent_id == request.agent_id,

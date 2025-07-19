@@ -4,7 +4,7 @@ import { HeadlessPMClient } from '@/lib/api/client';
 import { useProjectContext } from '@/lib/contexts/project-context';
 import { 
   AgentRole, SkillLevel, TaskStatus, DocumentType,
-  Epic, Feature, Task, Agent, Document, Service, Mention, Project
+  Epic, Feature, Task, Agent, Document, Service, Mention, Project, TaskUpdateRequest
 } from '@/lib/types';
 
 // API client is now managed by ProjectContext
@@ -137,6 +137,18 @@ export const useUpdateTaskStatus = () => {
   return useMutation({
     mutationFn: ({ taskId, status, agentId }: { taskId: number; status: TaskStatus; agentId: string }) =>
       apiClient.updateTaskStatus(taskId, status, agentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
+    }
+  });
+};
+
+export const useUpdateTaskDetails = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, updates }: { taskId: number; updates: TaskUpdateRequest }) =>
+      apiClient.updateTaskDetails(taskId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
     }

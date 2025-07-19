@@ -9,7 +9,7 @@ from src.api.schemas import (
     AgentRegisterRequest, AgentResponse, AgentRegistrationResponse, AgentAvailabilityResponse,
     EpicCreateRequest, FeatureCreateRequest,
     TaskCreateRequest, TaskResponse, TaskStatusUpdateRequest, TaskStatusUpdateResponse,
-    TaskCommentRequest,
+    TaskCommentRequest, TaskUpdateRequest,
     ProjectContextResponse, EpicResponse, FeatureResponse,
     ChangelogResponse, MentionResponse
 )
@@ -23,7 +23,7 @@ from src.services.task_service import (
     get_next_task_for_agent, wait_for_next_task
 )
 from src.services.task_management_service import (
-    create_task, list_tasks, lock_task, update_task_status, 
+    create_task, list_tasks, lock_task, update_task_status, update_task_details,
     add_task_comment, delete_task, get_recent_changelog, assign_task_to_agent
 )
 from src.services.epic_feature_service import (
@@ -280,6 +280,18 @@ def update_task_status_endpoint(task_id: int, request: TaskStatusUpdateRequest,
     return update_task_status(task_id, request, agent_id, db)
 
 
+@router.put("/tasks/{task_id}/details", response_model=TaskResponse,
+    summary="Update task details (Dashboard UI only)",
+    description="Update task title, description, role, difficulty, complexity. Only dashboard-user can perform this action.")
+def update_task_endpoint(
+    task_id: int, 
+    request: TaskUpdateRequest, 
+    agent_id: str, 
+    db: Session = Depends(get_session)
+):
+    return update_task_details(task_id, request, agent_id, db)
+
+
 @router.post("/tasks/{task_id}/assign", response_model=TaskResponse,
     summary="Assign task to agent (Project PM only)",
     description="Assign a specific task to a specific agent. Only Project PMs can perform this action.")
@@ -298,6 +310,19 @@ def assign_task_endpoint(
 def add_comment_endpoint(task_id: int, request: TaskCommentRequest,
                         agent_id: str, db: Session = Depends(get_session)):
     return add_task_comment(task_id, request, agent_id, db)
+
+
+@router.put("/tasks/{task_id}/complete", response_model=TaskResponse,
+    summary="Manually complete task (PM only)",
+    description="Manually mark a task as completed without requiring agent work. Useful for management tasks like analysis or planning.")
+def complete_task_manually_endpoint(
+    task_id: int,
+    target_status: TaskStatus,
+    agent_id: str,
+    db: Session = Depends(get_session)
+):
+    from src.services.task_management_service import complete_task_manually
+    return complete_task_manually(task_id, target_status, agent_id, db)
 
 
 @router.delete("/tasks/{task_id}",

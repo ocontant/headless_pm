@@ -6,7 +6,7 @@ from src.models.models import Agent, Task, Feature, Changelog, Epic
 from src.models.enums import TaskStatus, AgentRole, TaskType, AgentStatus
 from src.api.schemas import (
     TaskCreateRequest, TaskResponse, TaskStatusUpdateRequest,
-    TaskStatusUpdateResponse, TaskCommentRequest, ChangelogResponse
+    TaskStatusUpdateResponse, TaskCommentRequest, TaskUpdateRequest, ChangelogResponse
 )
 from src.api.dependencies import HTTPException
 from src.services.mention_service import create_mentions_for_task
@@ -70,6 +70,7 @@ def create_task(request: TaskCreateRequest, agent_id: str, db: Session) -> TaskR
         target_role=request.target_role,
         difficulty=request.difficulty,
         complexity=request.complexity,
+        task_type=request.task_type,
         branch=request.branch
     )
     db.add(task)
@@ -96,6 +97,7 @@ def create_task(request: TaskCreateRequest, agent_id: str, db: Session) -> TaskR
         target_role=task.target_role,
         difficulty=task.difficulty,
         complexity=task.complexity,
+        task_type=task.task_type,
         branch=task.branch,
         status=task.status,
         locked_by=task.locked_by_agent.agent_id if task.locked_by_agent else None,
@@ -342,14 +344,14 @@ def update_task_status(
         target_role=task.target_role,
         difficulty=task.difficulty,
         complexity=task.complexity,
+        task_type=task.task_type,
         branch=task.branch,
         status=task.status,
         locked_by=task.locked_by_agent.agent_id if task.locked_by_agent else None,
         locked_at=task.locked_at,
         notes=task.notes,
         created_at=task.created_at,
-        updated_at=task.updated_at,
-        task_type=TaskType.REGULAR
+        updated_at=task.updated_at
     )
     
     # Get next available task for this agent
@@ -373,6 +375,137 @@ def update_task_status(
         auto_continue=auto_continue,
         continuation_prompt="Continue with the next task without waiting for confirmation" if next_task else "No more tasks available",
         session_momentum=session_momentum
+    )
+
+
+def update_task_details(task_id: int, request: TaskUpdateRequest, agent_id: str, db: Session) -> TaskResponse:
+    """
+    Update task details (title, description, role, difficulty, complexity).
+    Only dashboard-user can perform this action.
+    
+    Args:
+        task_id: ID of the task to update
+        request: Task update request data
+        agent_id: ID of the agent making the update
+        db: Database session
+        
+    Returns:
+        The updated task
+        
+    Raises:
+        HTTPException: If agent lacks privileges or task not found
+    """
+    from src.services.agent_service import get_agent_by_id, can_edit_task_fields
+    
+    # Get task
+    task = db.get(Task, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Get the feature to find the project ID
+    feature = db.get(Feature, task.feature_id)
+    if not feature:
+        raise HTTPException(status_code=404, detail="Feature not found")
+    
+    epic = db.get(Epic, feature.epic_id)
+    if not epic:
+        raise HTTPException(status_code=404, detail="Epic not found")
+
+    # Get agent and verify privileges
+    agent = get_agent_by_id(agent_id, epic.project_id, db)
+    if not can_edit_task_fields(agent.agent_id, agent.role):
+        raise HTTPException(
+            status_code=403, 
+            detail="Only dashboard user can edit task details"
+        )
+    
+    # Store original values for logging
+    original_values = {
+        "title": task.title,
+        "description": task.description,
+        "target_role": task.target_role,
+        "difficulty": task.difficulty,
+        "complexity": task.complexity
+    }
+    
+    # Update fields if provided
+    updated_fields = []
+    if request.title is not None and request.title != task.title:
+        task.title = request.title
+        updated_fields.append(f"title: '{original_values['title']}' -> '{request.title}'")
+    
+    if request.description is not None and request.description != task.description:
+        task.description = request.description
+        updated_fields.append(f"description updated")
+    
+    if request.target_role is not None and request.target_role != task.target_role:
+        task.target_role = request.target_role
+        updated_fields.append(f"target_role: {original_values['target_role']} -> {request.target_role}")
+    
+    if request.difficulty is not None and request.difficulty != task.difficulty:
+        task.difficulty = request.difficulty
+        updated_fields.append(f"difficulty: {original_values['difficulty']} -> {request.difficulty}")
+    
+    if request.complexity is not None and request.complexity != task.complexity:
+        task.complexity = request.complexity
+        updated_fields.append(f"complexity: {original_values['complexity']} -> {request.complexity}")
+    
+    if not updated_fields:
+        # No changes to make
+        return TaskResponse(
+            id=task.id,
+            feature_id=task.feature_id,
+            title=task.title,
+            description=task.description,
+            created_by=task.creator.agent_id if task.creator else "unknown",
+            target_role=task.target_role,
+            difficulty=task.difficulty,
+            complexity=task.complexity,
+            task_type=task.task_type,
+            branch=task.branch,
+            status=task.status,
+            locked_by=task.locked_by_agent.agent_id if task.locked_by_agent else None,
+            locked_at=task.locked_at,
+            notes=task.notes,
+            created_at=task.created_at,
+            updated_at=task.updated_at
+        )
+    
+    # Update timestamp
+    task.updated_at = datetime.utcnow()
+    
+    # Create changelog entry for task edits
+    if updated_fields:
+        changelog = Changelog(
+            task_id=task_id,
+            old_status=task.status,  # Status didn't change
+            new_status=task.status,  # Status didn't change
+            changed_by=agent_id,
+            notes=f"Task details updated: {', '.join(updated_fields)}",
+            changed_at=datetime.utcnow()
+        )
+        db.add(changelog)
+    
+    db.commit()
+    db.refresh(task)
+    
+    return TaskResponse(
+        id=task.id,
+        feature_id=task.feature_id,
+        title=task.title,
+        description=task.description,
+        created_by=task.creator.agent_id if task.creator else "unknown",
+        target_role=task.target_role,
+        difficulty=task.difficulty,
+        complexity=task.complexity,
+        task_type=task.task_type,
+        branch=task.branch,
+        status=task.status,
+        locked_by=task.locked_by_agent.agent_id if task.locked_by_agent else None,
+        locked_at=task.locked_at,
+        notes=task.notes,
+        created_at=task.created_at,
+        updated_at=task.updated_at
     )
 
 
@@ -569,6 +702,103 @@ def assign_task_to_agent(
         branch=task.branch,
         status=task.status,
         locked_by=target_agent.agent_id,
+        locked_at=task.locked_at,
+        notes=task.notes,
+        created_at=task.created_at,
+        updated_at=task.updated_at
+    )
+
+
+def complete_task_manually(task_id: int, target_status: TaskStatus, agent_id: str, db: Session) -> TaskResponse:
+    """
+    Manually complete a task without requiring agent work. 
+    Useful for management tasks like analysis, planning, or meetings.
+    
+    Args:
+        task_id: ID of the task to complete
+        target_status: Target status to set (e.g., COMMITTED, QA_DONE)
+        agent_id: ID of the agent performing the action (must be PM)
+        db: Database session
+        
+    Returns:
+        Updated task response
+        
+    Raises:
+        HTTPException: If task not found, agent not authorized, or invalid status
+    """
+    # Get the task
+    task = db.exec(select(Task).where(Task.id == task_id)).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Get the agent performing the action
+    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    # Check if agent is authorized (PM or Project PM)
+    if agent.role not in [AgentRole.GLOBAL_PM, AgentRole.PROJECT_PM, AgentRole.PM]:
+        raise HTTPException(status_code=403, detail="Only Project Managers can manually complete tasks")
+    
+    # For Project PMs, ensure they're working on the right project
+    if agent.role == AgentRole.PROJECT_PM:
+        task_project = get_task_project(task, db)
+        if task_project and task_project.id != agent.project_id:
+            raise HTTPException(status_code=403, detail="Project PM can only complete tasks in their assigned project")
+    
+    # Validate target status
+    valid_completion_statuses = [
+        TaskStatus.DEV_DONE, TaskStatus.QA_DONE, 
+        TaskStatus.DOCUMENTATION_DONE, TaskStatus.COMMITTED
+    ]
+    if target_status not in valid_completion_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid target status: {target_status}")
+    
+    # Record the previous status for changelog
+    previous_status = task.status
+    
+    # Update task status
+    task.status = target_status
+    task.updated_at = datetime.utcnow()
+    
+    # If the task was locked, unlock it
+    if task.locked_by_id:
+        task.locked_by_id = None
+        task.locked_at = None
+        
+        # Update the agent status to IDLE if they were working on this task
+        locked_agent = db.exec(select(Agent).where(Agent.id == task.locked_by_id)).first()
+        if locked_agent:
+            locked_agent.status = AgentStatus.IDLE
+            locked_agent.updated_at = datetime.utcnow()
+    
+    # Create changelog entry
+    changelog = Changelog(
+        task_id=task.id,
+        status=target_status,
+        changed_at=datetime.utcnow(),
+        changed_by=agent_id,
+        notes=f"Task manually completed by {agent.role.value} (target status: {target_status.value})"
+    )
+    
+    db.add(task)
+    db.add(changelog)
+    db.commit()
+    db.refresh(task)
+    
+    return TaskResponse(
+        id=task.id,
+        feature_id=task.feature_id,
+        title=task.title,
+        description=task.description,
+        created_by=task.creator.agent_id,
+        target_role=task.target_role,
+        difficulty=task.difficulty,
+        complexity=task.complexity,
+        task_type=task.task_type,
+        branch=task.branch,
+        status=task.status,
+        locked_by=task.locked_by.agent_id if task.locked_by else None,
         locked_at=task.locked_at,
         notes=task.notes,
         created_at=task.created_at,

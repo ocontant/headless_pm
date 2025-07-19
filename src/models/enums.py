@@ -18,6 +18,7 @@ class AgentRole(str, Enum):
     ARCHITECT = "architect"
     GLOBAL_PM = "global_pm"
     PROJECT_PM = "project_pm"
+    UI_ADMIN = "ui_admin"  # Special dashboard role with task editing privileges
     # Legacy role (deprecated but kept for backward compatibility)
     PM = "pm"
 
@@ -33,10 +34,12 @@ class TaskComplexity(str, Enum):
 class ConnectionType(str, Enum):
     MCP = "mcp"      # Model Context Protocol
     CLIENT = "client"  # Direct API client
+    UI = "ui"        # Dashboard UI connection
 
 class TaskType(str, Enum):
-    REGULAR = "regular"   # Normal development task
-    WAITING = "waiting"   # Synthetic waiting task for polling
+    REGULAR = "regular"      # Normal development task
+    WAITING = "waiting"      # Synthetic waiting task for polling
+    MANAGEMENT = "management"  # Management task (analysis, planning, meetings)
 
 class AgentStatus(str, Enum):
     IDLE = "idle"         # Agent is available for new tasks

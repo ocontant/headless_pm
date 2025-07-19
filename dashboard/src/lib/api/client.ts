@@ -3,7 +3,7 @@ import {
   Agent, Epic, Feature, Task, TaskComment, Document, 
   Mention, Service, ProjectContext, Changes,
   TaskStatus, AgentRole, SkillLevel, DocumentType,
-  Project, AgentAvailability
+  Project, AgentAvailability, TaskUpdateRequest
 } from '@/lib/types';
 
 export class HeadlessPMClient {
@@ -213,6 +213,31 @@ export class HeadlessPMClient {
       return data;
     } catch (error) {
       console.error('UpdateTaskStatus error:', error);
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      throw error;
+    }
+  }
+
+  async updateTaskDetails(taskId: number, updates: TaskUpdateRequest) {
+    console.log('UpdateTaskDetails called with:', { taskId, updates });
+    
+    const url = `/tasks/${taskId}/details?agent_id=dashboard-user`;
+    const payload = updates;
+    
+    console.log('Request URL:', url);
+    console.log('Request payload:', JSON.stringify(payload));
+    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
+    
+    try {
+      const { data } = await this.client.put<Task>(url, payload);
+      console.log('UpdateTaskDetails success:', data);
+      return data;
+    } catch (error) {
+      console.error('UpdateTaskDetails error:', error);
       if (error.response) {
         console.error('Error response data:', error.response.data);
         console.error('Error response status:', error.response.status);

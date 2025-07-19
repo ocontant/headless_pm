@@ -1,12 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Task, TaskStatus, TaskDifficulty, TaskComplexity } from '@/lib/types';
+import { Task, TaskStatus, TaskDifficulty, TaskComplexity, AgentRole, TaskUpdateRequest } from '@/lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUpdateTaskDetails } from '@/lib/hooks/useApi';
 import { 
   User, 
   Clock, 
@@ -15,7 +19,10 @@ import {
   Calendar, 
   FileText,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  Edit,
+  Save,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
@@ -55,7 +62,41 @@ const STATUS_COLORS = {
 };
 
 export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<TaskUpdateRequest>({});
+  const updateTaskMutation = useUpdateTaskDetails();
+
   if (!task) return null;
+
+  const handleEdit = () => {
+    setEditData({
+      title: task.title,
+      description: task.description || '',
+      target_role: task.target_role,
+      difficulty: task.difficulty,
+      complexity: task.complexity
+    });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateTaskMutation.mutateAsync({
+        taskId: task.id,
+        updates: editData
+      });
+      setIsEditing(false);
+      // Note: The modal will automatically refresh via React Query cache invalidation
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      // TODO: Add proper error handling/toast
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditData({});
+  };
 
   const getTaskIcon = (title: string) => {
     const lower = title.toLowerCase();
@@ -80,7 +121,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <span className="text-2xl">{getTaskIcon(task.title)}</span>
+            <span className="text-2xl">{getTaskIcon(isEditing ? editData.title || task.title : task.title)}</span>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span>Task #{task.id}</span>
@@ -89,8 +130,49 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                 </Badge>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancel}
+                    disabled={updateTaskMutation.isPending}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={updateTaskMutation.isPending}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Save
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEdit}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </DialogTitle>
-          <div className="text-xl font-semibold text-foreground mt-2">{task.title}</div>
+          {isEditing ? (
+            <Input
+              value={editData.title || ''}
+              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+              className="text-xl font-semibold mt-2"
+              placeholder="Task title"
+            />
+          ) : (
+            <div className="text-xl font-semibold text-foreground mt-2">{task.title}</div>
+          )}
         </DialogHeader>
 
         <div className="space-y-6">
@@ -101,30 +183,80 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                 <CardTitle className="text-sm">Task Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {task.target_role && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Role:</span>
+                {/* Role Field */}
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Role:</span>
+                  {isEditing ? (
+                    <Select
+                      value={editData.target_role || task.target_role}
+                      onValueChange={(value) => setEditData({ ...editData, target_role: value as AgentRole })}
+                    >
+                      <SelectTrigger className="w-[180px] h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={AgentRole.FrontendDev}>Frontend Dev</SelectItem>
+                        <SelectItem value={AgentRole.BackendDev}>Backend Dev</SelectItem>
+                        <SelectItem value={AgentRole.QA}>QA</SelectItem>
+                        <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
+                        <SelectItem value={AgentRole.ProjectPM}>Project PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
                     <Badge className={`text-xs ${ROLE_COLORS[task.target_role] || 'bg-gray-500 text-white'}`}>
                       {task.target_role.replace('_', ' ')}
                     </Badge>
-                  </div>
-                )}
+                  )}
+                </div>
 
+                {/* Difficulty Field */}
                 <div className="flex items-center gap-2">
                   <Flag className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Difficulty:</span>
-                  <Badge className={`text-xs ${DIFFICULTY_COLORS[task.difficulty]}`}>
-                    {task.difficulty.toUpperCase()}
-                  </Badge>
+                  {isEditing ? (
+                    <Select
+                      value={editData.difficulty || task.difficulty}
+                      onValueChange={(value) => setEditData({ ...editData, difficulty: value as TaskDifficulty })}
+                    >
+                      <SelectTrigger className="w-[120px] h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TaskDifficulty.Junior}>Junior</SelectItem>
+                        <SelectItem value={TaskDifficulty.Senior}>Senior</SelectItem>
+                        <SelectItem value={TaskDifficulty.Principal}>Principal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge className={`text-xs ${DIFFICULTY_COLORS[task.difficulty]}`}>
+                      {task.difficulty.toUpperCase()}
+                    </Badge>
+                  )}
                 </div>
 
+                {/* Complexity Field */}
                 <div className="flex items-center gap-2">
                   <GitBranch className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Complexity:</span>
-                  <Badge className={`text-xs ${COMPLEXITY_COLORS[task.complexity]}`}>
-                    {task.complexity.toUpperCase()}
-                  </Badge>
+                  {isEditing ? (
+                    <Select
+                      value={editData.complexity || task.complexity}
+                      onValueChange={(value) => setEditData({ ...editData, complexity: value as TaskComplexity })}
+                    >
+                      <SelectTrigger className="w-[100px] h-7 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={TaskComplexity.Minor}>Minor</SelectItem>
+                        <SelectItem value={TaskComplexity.Major}>Major</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge className={`text-xs ${COMPLEXITY_COLORS[task.complexity]}`}>
+                      {task.complexity.toUpperCase()}
+                    </Badge>
+                  )}
                 </div>
 
                 {task.assigned_agent_id && (
@@ -198,7 +330,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
           </div>
 
           {/* Description Section */}
-          {task.description && (
+          {(task.description || isEditing) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -207,9 +339,19 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown>{task.description}</ReactMarkdown>
-                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={editData.description || ''}
+                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                    placeholder="Task description (supports Markdown)"
+                    rows={6}
+                    className="min-h-[150px]"
+                  />
+                ) : (
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown>{task.description}</ReactMarkdown>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
