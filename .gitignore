@@ -43,8 +43,7 @@ claude_venv/
 *.backup_*
 
 # Runtime files
-run/*.pid
-run/*.log
+run/
 
 # Testing
 .pytest_cache/
