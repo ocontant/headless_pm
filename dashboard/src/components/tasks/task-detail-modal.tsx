@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUpdateTaskDetails } from '@/lib/hooks/useApi';
+import { useUpdateTaskDetails, useDeleteTask } from '@/lib/hooks/useApi';
 import { 
   User, 
   Clock, 
@@ -22,7 +22,9 @@ import {
   ExternalLink,
   Edit,
   Save,
-  X
+  X,
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
@@ -38,7 +40,8 @@ const ROLE_COLORS = {
   backend_dev: 'bg-green-500 text-white',
   qa: 'bg-purple-500 text-white',
   architect: 'bg-orange-500 text-white',
-  pm: 'bg-red-500 text-white'
+  project_pm: 'bg-red-500 text-white',
+  ui_admin: 'bg-slate-500 text-white'
 };
 
 const DIFFICULTY_COLORS = {
@@ -64,7 +67,9 @@ const STATUS_COLORS = {
 export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<TaskUpdateRequest>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const updateTaskMutation = useUpdateTaskDetails();
+  const deleteTaskMutation = useDeleteTask();
 
   if (!task) return null;
 
@@ -86,16 +91,29 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
         updates: editData
       });
       setIsEditing(false);
+      setEditData({});
       // Note: The modal will automatically refresh via React Query cache invalidation
     } catch (error) {
       console.error('Failed to update task:', error);
-      // TODO: Add proper error handling/toast
+      // Error is handled by the mutation hook's error state
+      // The UI will show the error state automatically
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setEditData({});
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteTaskMutation.mutateAsync(task.id);
+      setShowDeleteConfirm(false);
+      onClose(); // Close modal after successful deletion
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      // Error is handled by the mutation hook's error state
+    }
   };
 
   const getTaskIcon = (title: string) => {
@@ -152,14 +170,25 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                   </Button>
                 </>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEdit}
-                >
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEdit}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={deleteTaskMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </>
               )}
             </div>
           </DialogTitle>
@@ -169,11 +198,31 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
               onChange={(e) => setEditData({ ...editData, title: e.target.value })}
               className="text-xl font-semibold mt-2"
               placeholder="Task title"
+              disabled={updateTaskMutation.isPending}
             />
           ) : (
             <div className="text-xl font-semibold text-foreground mt-2">{task.title}</div>
           )}
         </DialogHeader>
+
+        {/* Error Display */}
+        {updateTaskMutation.isError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm">
+              Failed to update task: {updateTaskMutation.error instanceof Error ? updateTaskMutation.error.message : 'Unknown error'}
+            </span>
+          </div>
+        )}
+        
+        {deleteTaskMutation.isError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm">
+              Failed to delete task: {deleteTaskMutation.error instanceof Error ? deleteTaskMutation.error.message : 'Unknown error'}
+            </span>
+          </div>
+        )}
 
         <div className="space-y-6">
           {/* Metadata Section */}
@@ -191,6 +240,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <Select
                       value={editData.target_role || task.target_role}
                       onValueChange={(value) => setEditData({ ...editData, target_role: value as AgentRole })}
+                      disabled={updateTaskMutation.isPending}
                     >
                       <SelectTrigger className="w-[180px] h-7 text-xs">
                         <SelectValue />
@@ -201,6 +251,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                         <SelectItem value={AgentRole.QA}>QA</SelectItem>
                         <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
                         <SelectItem value={AgentRole.ProjectPM}>Project PM</SelectItem>
+                        <SelectItem value={AgentRole.UIAdmin}>UI Admin</SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
@@ -218,6 +269,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <Select
                       value={editData.difficulty || task.difficulty}
                       onValueChange={(value) => setEditData({ ...editData, difficulty: value as TaskDifficulty })}
+                      disabled={updateTaskMutation.isPending}
                     >
                       <SelectTrigger className="w-[120px] h-7 text-xs">
                         <SelectValue />
@@ -243,6 +295,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <Select
                       value={editData.complexity || task.complexity}
                       onValueChange={(value) => setEditData({ ...editData, complexity: value as TaskComplexity })}
+                      disabled={updateTaskMutation.isPending}
                     >
                       <SelectTrigger className="w-[100px] h-7 text-xs">
                         <SelectValue />
@@ -346,6 +399,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     placeholder="Task description (supports Markdown)"
                     rows={6}
                     className="min-h-[150px]"
+                    disabled={updateTaskMutation.isPending}
                   />
                 ) : (
                   <div className="prose prose-sm max-w-none">
@@ -357,7 +411,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
           )}
 
           {/* Git Information */}
-          {(task.git_branch || task.pr_url) && (
+          {(task.branch || task.pr_url) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -366,11 +420,11 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {task.git_branch && (
+                {task.branch && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Branch:</span>
                     <Badge variant="outline" className="font-mono text-xs">
-                      {task.git_branch}
+                      {task.branch}
                     </Badge>
                   </div>
                 )}
@@ -413,6 +467,47 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
           </Button>
         </div>
       </DialogContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Delete Task
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete task #{task.id} "{task.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={deleteTaskMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteTaskMutation.isPending}
+            >
+              {deleteTaskMutation.isPending ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Task
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

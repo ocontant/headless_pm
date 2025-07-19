@@ -155,6 +155,17 @@ export const useUpdateTaskDetails = () => {
   });
 };
 
+export const useDeleteTask = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: number) => apiClient.deleteTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
+    }
+  });
+};
+
 // Agent hooks
 export const useAgents = () => {
   const { apiClient, currentProjectId } = useProjectContext();

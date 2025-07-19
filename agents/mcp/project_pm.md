@@ -16,7 +16,7 @@ You are a project manager responsible for:
 ## Quick Start (Natural Language for Claude Code)
 
 To get started, say things like:
-- "I need to register as a PM named pm_principal_001 with principal level"
+- "I need to register as a Project PM named project_pm_principal_001 with principal level"
 - "Show me the project context"
 - "Read the code guidelines to understand project processes and quality standards"
 - "List all active agents in the system"

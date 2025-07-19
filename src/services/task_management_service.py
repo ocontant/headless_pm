@@ -43,10 +43,7 @@ def create_task(request: TaskCreateRequest, agent_id: str, db: Session) -> TaskR
         raise HTTPException(status_code=404, detail="Epic not found")
     
     # Validate project access based on agent role
-    if creator.role == AgentRole.GLOBAL_PM:
-        # Global PM can create tasks in any project - no restriction
-        pass
-    elif creator.role == AgentRole.PROJECT_PM:
+    if creator.role == AgentRole.PROJECT_PM:
         # Project PM can only create tasks in their project
         if epic.project_id != creator.project_id:
             raise HTTPException(
@@ -551,11 +548,11 @@ def add_task_comment(task_id: int, request: TaskCommentRequest, agent_id: str, d
 
 def delete_task(task_id: int, agent_id: str, db: Session) -> dict:
     """
-    Delete a task. Only PM agents can perform this action.
+    Delete a task. Only dashboard UI admin can perform this action.
     
     Args:
         task_id: ID of the task to delete
-        agent_id: ID of the agent making the request
+        agent_id: ID of the agent making the request (must be dashboard-user)
         db: Database session
         
     Returns:
@@ -564,20 +561,31 @@ def delete_task(task_id: int, agent_id: str, db: Session) -> dict:
     Raises:
         HTTPException: If unauthorized or task not found
     """
-    from src.services.agent_service import verify_agent_role
+    from src.services.agent_service import get_agent_by_id, can_edit_task_fields
     
-    # First get the agent to determine their project_id
-    agent = db.exec(select(Agent).where(Agent.agent_id == agent_id)).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    
-    # Verify agent is PM using their project_id
-    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM], db)
-    
+    # Get task first to find project
     task = db.exec(select(Task).where(Task.id == task_id)).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
+    # Get the feature to find the project ID (same as edit function)
+    feature = db.get(Feature, task.feature_id)
+    if not feature:
+        raise HTTPException(status_code=404, detail="Feature not found")
+    
+    epic = db.get(Epic, feature.epic_id)
+    if not epic:
+        raise HTTPException(status_code=404, detail="Epic not found")
+
+    # Get agent and verify privileges (same as edit function)
+    agent = get_agent_by_id(agent_id, epic.project_id, db)
+    if not can_edit_task_fields(agent.agent_id, agent.role):
+        raise HTTPException(
+            status_code=403, 
+            detail="Only dashboard user can delete tasks"
+        )
+    
+    # Delete the task
     db.delete(task)
     db.commit()
     
@@ -736,15 +744,14 @@ def complete_task_manually(task_id: int, target_status: TaskStatus, agent_id: st
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Check if agent is authorized (PM or Project PM)
-    if agent.role not in [AgentRole.GLOBAL_PM, AgentRole.PROJECT_PM, AgentRole.PM]:
+    # Check if agent is authorized (Project PM only)
+    if agent.role != AgentRole.PROJECT_PM:
         raise HTTPException(status_code=403, detail="Only Project Managers can manually complete tasks")
     
-    # For Project PMs, ensure they're working on the right project
-    if agent.role == AgentRole.PROJECT_PM:
-        task_project = get_task_project(task, db)
-        if task_project and task_project.id != agent.project_id:
-            raise HTTPException(status_code=403, detail="Project PM can only complete tasks in their assigned project")
+    # Ensure Project PM is working on the right project
+    task_project = get_task_project(task, db)
+    if task_project and task_project.id != agent.project_id:
+        raise HTTPException(status_code=403, detail="Project PM can only complete tasks in their assigned project")
     
     # Validate target status
     valid_completion_statuses = [

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import time
 
 from src.models.models import Agent, Task, Feature, Epic
-from src.models.enums import TaskStatus, AgentRole, DifficultyLevel
+from src.models.enums import TaskStatus, AgentRole, DifficultyLevel, TaskType
 from src.api.schemas import TaskResponse
 from src.models.database import engine
 
@@ -80,8 +80,8 @@ def get_next_task_for_agent(agent: Agent, db: Session) -> Optional[TaskResponse]
             elif skill not in active_skill_levels:  # Can do higher-level tasks if no one else available
                 continue
         
-        # For architects and PMs, also include legacy APPROVED status for backward compatibility
-        if agent.role in [AgentRole.ARCHITECT, AgentRole.PM, AgentRole.GLOBAL_PM, AgentRole.PROJECT_PM]:
+        # For architects and Project PMs, also include legacy APPROVED status for backward compatibility
+        if agent.role in [AgentRole.ARCHITECT, AgentRole.PROJECT_PM]:
             query = (select(Task)
                     .join(Feature, Task.feature_id == Feature.id)
                     .join(Epic, Feature.epic_id == Epic.id)
@@ -90,6 +90,7 @@ def get_next_task_for_agent(agent: Agent, db: Session) -> Optional[TaskResponse]
                         Task.target_role == agent.role,
                         Task.difficulty.in_(allowed_difficulties),
                         Task.locked_by_id.is_(None),
+                        Task.task_type != TaskType.MANAGEMENT,  # Exclude management tasks from automatic assignment
                         Epic.project_id == agent.project_id
                     ))
         else:
@@ -101,6 +102,7 @@ def get_next_task_for_agent(agent: Agent, db: Session) -> Optional[TaskResponse]
                         Task.target_role == agent.role,
                         Task.difficulty.in_(allowed_difficulties),
                         Task.locked_by_id.is_(None),
+                        Task.task_type != TaskType.MANAGEMENT,  # Exclude management tasks from automatic assignment
                         Epic.project_id == agent.project_id
                     ))
     

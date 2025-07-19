@@ -326,8 +326,8 @@ def complete_task_manually_endpoint(
 
 
 @router.delete("/tasks/{task_id}",
-    summary="Delete a task (PM only)",
-    description="Delete a task. Only PM agents can perform this action.")
+    summary="Delete a task (Dashboard UI only)",
+    description="Delete a task. Only dashboard-user can perform this action.")
 def delete_task_endpoint(task_id: int, agent_id: str, db: Session = Depends(get_session)):
     return delete_task(task_id, agent_id, db)
 

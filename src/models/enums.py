@@ -16,11 +16,8 @@ class AgentRole(str, Enum):
     BACKEND_DEV = "backend_dev"
     QA = "qa"
     ARCHITECT = "architect"
-    GLOBAL_PM = "global_pm"
     PROJECT_PM = "project_pm"
     UI_ADMIN = "ui_admin"  # Special dashboard role with task editing privileges
-    # Legacy role (deprecated but kept for backward compatibility)
-    PM = "pm"
 
 class DifficultyLevel(str, Enum):
     JUNIOR = "junior"

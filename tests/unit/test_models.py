@@ -45,7 +45,8 @@ class TestEnums:
         assert AgentRole.BACKEND_DEV == "backend_dev"
         assert AgentRole.QA == "qa"
         assert AgentRole.ARCHITECT == "architect"
-        assert AgentRole.PM == "pm"
+        assert AgentRole.PROJECT_PM == "project_pm"
+        assert AgentRole.UI_ADMIN == "ui_admin"
         
     def test_difficulty_level_enum(self):
         """Test DifficultyLevel enum values"""
@@ -62,6 +63,7 @@ class TestEnums:
         """Test ConnectionType enum values"""
         assert ConnectionType.MCP == "mcp"
         assert ConnectionType.CLIENT == "client"
+        assert ConnectionType.UI == "ui"
         
     def test_task_type_enum(self):
         """Test TaskType enum values"""
@@ -147,7 +149,7 @@ class TestModels:
         # Create agent first
         agent = Agent(
             agent_id="test_creator",
-            role=AgentRole.PM,
+            role=AgentRole.PROJECT_PM,
             level=DifficultyLevel.SENIOR
         )
         session.add(agent)
@@ -286,7 +288,7 @@ class TestModels:
         # Create necessary dependencies
         agent = Agent(
             agent_id="test_creator",
-            role=AgentRole.PM,
+            role=AgentRole.PROJECT_PM,
             level=DifficultyLevel.SENIOR
         )
         session.add(agent)
@@ -340,7 +342,7 @@ class TestModels:
         # Create agent
         agent = Agent(
             agent_id="test_creator",
-            role=AgentRole.PM,
+            role=AgentRole.PROJECT_PM,
             level=DifficultyLevel.SENIOR
         )
         session.add(agent)

@@ -247,6 +247,29 @@ export class HeadlessPMClient {
     }
   }
 
+  async deleteTask(taskId: number) {
+    console.log('DeleteTask called with taskId:', taskId);
+    
+    const url = `/tasks/${taskId}?agent_id=dashboard-user`;
+    
+    console.log('Request URL:', url);
+    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
+    
+    try {
+      const { data } = await this.client.delete<{ message: string }>(url);
+      console.log('DeleteTask success:', data);
+      return data;
+    } catch (error) {
+      console.error('DeleteTask error:', error);
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      throw error;
+    }
+  }
+
   async addTaskComment(taskId: number, agentId: string, content: string) {
     const { data } = await this.client.post<TaskComment>(`/tasks/${taskId}/comment`, {
       agent_id: agentId,

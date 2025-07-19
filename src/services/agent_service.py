@@ -214,10 +214,10 @@ def delete_agent(agent_id: str, requester_agent_id: str, project_id: int, db: Se
     Raises:
         HTTPException: If unauthorized or validation fails
     """
-    # Verify requester is PM
-    requester = verify_agent_role(requester_agent_id, project_id, [AgentRole.PM], db)
+    # Verify requester is Project PM
+    requester = verify_agent_role(requester_agent_id, project_id, [AgentRole.PROJECT_PM], db)
     
-    # Prevent PM from deleting themselves
+    # Prevent Project PM from deleting themselves
     if agent_id == requester_agent_id:
         raise HTTPException(status_code=400, detail="Cannot delete your own agent record")
     

@@ -3,7 +3,7 @@ from sqlalchemy import Text, UniqueConstraint, Enum
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from pydantic import validator, root_validator
-from .enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType, AgentStatus
+from .enums import TaskStatus, AgentRole, DifficultyLevel, TaskComplexity, ConnectionType, AgentStatus, TaskType
 from .document_enums import DocumentType, ServiceStatus
 
 class Project(SQLModel, table=True):
@@ -112,6 +112,7 @@ class Task(SQLModel, table=True):
     target_role: AgentRole = Field(sa_column=Column(Enum(AgentRole, values_callable=lambda x: [e.value for e in x])))
     difficulty: DifficultyLevel = Field(sa_column=Column(Enum(DifficultyLevel, values_callable=lambda x: [e.value for e in x])))
     complexity: TaskComplexity = Field(default=TaskComplexity.MAJOR, sa_column=Column(Enum(TaskComplexity, values_callable=lambda x: [e.value for e in x])))
+    task_type: TaskType = Field(default=TaskType.REGULAR, sa_column=Column(Enum(TaskType, values_callable=lambda x: [e.value for e in x])))
     branch: str
     status: TaskStatus = Field(default=TaskStatus.CREATED, sa_column=Column(Enum(TaskStatus, values_callable=lambda x: [e.value for e in x])))
     locked_by_id: Optional[int] = Field(default=None, foreign_key="agent.id")
@@ -148,6 +149,15 @@ class Task(SQLModel, table=True):
                 return TaskComplexity(v.lower())
             except ValueError:
                 raise ValueError(f"Invalid task complexity: {v}. Valid complexities: {[c.value for c in TaskComplexity]}")
+        return v
+    
+    @validator('task_type')
+    def validate_task_type(cls, v):
+        if isinstance(v, str):
+            try:
+                return TaskType(v.lower())
+            except ValueError:
+                raise ValueError(f"Invalid task type: {v}. Valid types: {[t.value for t in TaskType]}")
         return v
     
     @validator('status')

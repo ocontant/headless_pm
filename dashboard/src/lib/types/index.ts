@@ -5,11 +5,8 @@ export enum AgentRole {
   BackendDev = "backend_dev",
   QA = "qa", 
   Architect = "architect",
-  GlobalPM = "global_pm",
   ProjectPM = "project_pm",
-  UIAdmin = "ui_admin",
-  // Legacy role (deprecated)
-  PM = "pm"
+  UIAdmin = "ui_admin"
 }
 
 export enum SkillLevel {

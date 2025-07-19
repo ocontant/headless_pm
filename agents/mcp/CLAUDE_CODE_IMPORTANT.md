@@ -12,7 +12,7 @@ You have MCP tools available. To use them, just describe what you want in natura
 
 **To Register:**
 Instead of trying to run scripts, just say:
-"I'll register as a PM agent now"
+"I'll register as a Project PM agent now"
 
 Then Claude Code will automatically:
 1. Find the `register_agent` tool from the headlesspm MCP server
