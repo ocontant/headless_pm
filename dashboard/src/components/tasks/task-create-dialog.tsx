@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Plus } from 'lucide-react';
 import { AgentRole, TaskDifficulty, TaskComplexity } from '@/lib/types';
+import { generateBranchName } from '@/lib/utils/branch-naming';
 import { EpicCreateModal } from './epic-create-modal';
 import { FeatureCreateModal } from './feature-create-modal';
 
@@ -47,13 +48,18 @@ export function TaskCreateDialog({
   const [showEpicModal, setShowEpicModal] = useState(false);
   const [showFeatureModal, setShowFeatureModal] = useState(false);
   
+  // Pending selections for auto-selection after creation
+  const [pendingEpicSelection, setPendingEpicSelection] = useState<number | null>(null);
+  const [pendingFeatureSelection, setPendingFeatureSelection] = useState<number | null>(null);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     feature_id: '',
-    assigned_role: '',
+    target_role: '',
     difficulty: '',
-    complexity: ''
+    complexity: '',
+    branch: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -64,29 +70,53 @@ export function TaskCreateDialog({
         title: '',
         description: '',
         feature_id: '',
-        assigned_role: '',
+        target_role: '',
         difficulty: '',
-        complexity: ''
+        complexity: '',
+        branch: ''
       });
       setSelectedEpicId('');
       setErrors({});
       setShowEpicModal(false);
       setShowFeatureModal(false);
+      setPendingEpicSelection(null);
+      setPendingFeatureSelection(null);
     }
   }, [open]);
 
+  // Auto-select newly created epic when epics data updates
+  useEffect(() => {
+    if (pendingEpicSelection && epics) {
+      const epicExists = epics.some(epic => epic.id === pendingEpicSelection);
+      if (epicExists) {
+        setSelectedEpicId(pendingEpicSelection.toString());
+        setFormData(prev => ({ ...prev, feature_id: '' })); // Clear feature selection
+        setPendingEpicSelection(null);
+      }
+    }
+  }, [epics, pendingEpicSelection]);
+
+  // Auto-select newly created feature when features data updates
+  useEffect(() => {
+    if (pendingFeatureSelection && features) {
+      const featureExists = features.some(feature => feature.id === pendingFeatureSelection);
+      if (featureExists) {
+        setFormData(prev => ({ ...prev, feature_id: pendingFeatureSelection.toString() }));
+        setPendingFeatureSelection(null);
+      }
+    }
+  }, [features, pendingFeatureSelection]);
+
   // Handle Epic Creation Success
   const handleEpicCreated = async (epicId: number) => {
+    setPendingEpicSelection(epicId);
     await refetchEpics();
-    setSelectedEpicId(epicId.toString());
-    // Clear any existing feature selection since we have a new epic
-    setFormData(prev => ({ ...prev, feature_id: '' }));
   };
 
   // Handle Feature Creation Success
   const handleFeatureCreated = async (featureId: number) => {
+    setPendingFeatureSelection(featureId);
     await refetchFeatures();
-    setFormData(prev => ({ ...prev, feature_id: featureId.toString() }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,14 +127,26 @@ export function TaskCreateDialog({
     try {
       // Validate required fields
       const newErrors: Record<string, string> = {};
-      if (!formData.title.trim()) {
+      if (!formData.title?.trim()) {
         newErrors.title = 'Task title is required';
       }
       if (!formData.feature_id) {
         newErrors.feature_id = 'Feature selection is required';
       }
-      if (!formData.assigned_role) {
-        newErrors.assigned_role = 'Target role is required';
+      if (!formData.target_role) {
+        newErrors.target_role = 'Target role is required';
+      }
+      // Auto-generate branch name if empty
+      let finalBranchName = formData.branch?.trim();
+      if (!finalBranchName && formData.title?.trim()) {
+        finalBranchName = generateBranchName({ 
+          title: formData.title,
+          complexity: formData.complexity as 'major' | 'minor'
+        });
+      }
+      
+      if (!finalBranchName) {
+        newErrors.branch = 'Branch name is required (will be auto-generated from title)';
       }
       if (!formData.difficulty) {
         newErrors.difficulty = 'Difficulty level is required';
@@ -119,21 +161,36 @@ export function TaskCreateDialog({
         return;
       }
 
+      // Use the final branch name (either user-provided or auto-generated)
+      const finalBranchName = formData.branch?.trim() || generateBranchName({ 
+        title: formData.title || '',
+        complexity: formData.complexity as 'major' | 'minor'
+      });
+
       await client.createTask({
-        title: formData.title.trim(),
-        description: formData.description.trim(),
+        title: formData.title?.trim() || '',
+        description: formData.description?.trim() || '',
         feature_id: parseInt(formData.feature_id),
-        assigned_role: formData.assigned_role as AgentRole,
+        target_role: formData.target_role as AgentRole,
         difficulty: formData.difficulty,
-        complexity: formData.complexity
+        complexity: formData.complexity,
+        branch: finalBranchName
       });
 
       onTaskCreated();
     } catch (error: unknown) {
       console.error('Failed to create task:', error);
-      setErrors({ 
-        submit: (error as any)?.response?.data?.detail || 'Failed to create task. Please try again.' 
-      });
+      const errorDetail = (error as any)?.response?.data?.detail;
+      let errorMessage = 'Failed to create task. Please try again.';
+      
+      if (typeof errorDetail === 'string') {
+        errorMessage = errorDetail;
+      } else if (Array.isArray(errorDetail)) {
+        // Handle validation errors (422 responses)
+        errorMessage = errorDetail.map((err: any) => `${err.loc?.join('.')} ${err.msg}`).join(', ');
+      }
+      
+      setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +198,16 @@ export function TaskCreateDialog({
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-generate branch name when title changes, if branch is empty
+    if (field === 'title' && !formData.branch?.trim() && value?.trim()) {
+      const generatedBranch = generateBranchName({ 
+        title: value,
+        complexity: formData.complexity as 'major' | 'minor'
+      });
+      setFormData(prev => ({ ...prev, branch: generatedBranch }));
+    }
+    
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -149,15 +216,16 @@ export function TaskCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Create New Task</DialogTitle>
           <DialogDescription>
             Create a new task and assign it to a feature and role.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex-1 overflow-y-auto pr-2">
+          <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 gap-4">
             {/* Task Title */}
             <div className="space-y-2">
@@ -259,12 +327,12 @@ export function TaskCreateDialog({
 
             {/* Target Role */}
             <div className="space-y-2">
-              <Label htmlFor="assigned_role">Target Role *</Label>
+              <Label htmlFor="target_role">Target Role *</Label>
               <Select 
-                value={formData.assigned_role || ''} 
-                onValueChange={(value) => handleChange('assigned_role', value)}
+                value={formData.target_role || ''} 
+                onValueChange={(value) => handleChange('target_role', value)}
               >
-                <SelectTrigger className={errors.assigned_role ? 'border-destructive' : ''}>
+                <SelectTrigger className={errors.target_role ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Select target role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -275,9 +343,27 @@ export function TaskCreateDialog({
                   <SelectItem value={AgentRole.QA}>QA Engineer</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.assigned_role && (
-                <p className="text-sm text-destructive">{errors.assigned_role}</p>
+              {errors.target_role && (
+                <p className="text-sm text-destructive">{errors.target_role}</p>
               )}
+            </div>
+
+            {/* Branch */}
+            <div className="space-y-2">
+              <Label htmlFor="branch">Branch Name</Label>
+              <Input
+                id="branch"
+                placeholder="Auto-generated from title (e.g., feature/task-name)"
+                value={formData.branch}
+                onChange={(e) => handleChange('branch', e.target.value)}
+                className={errors.branch ? 'border-destructive' : ''}
+              />
+              {errors.branch && (
+                <p className="text-sm text-destructive">{errors.branch}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Leave empty to auto-generate from task title. Format: feature/task-name, fix/issue-name
+              </p>
             </div>
 
             {/* Difficulty and Complexity */}
@@ -332,21 +418,22 @@ export function TaskCreateDialog({
             </div>
           )}
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Task
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Task
+              </Button>
+            </DialogFooter>
+          </form>
+        </div>
       </DialogContent>
 
       {/* Epic Creation Modal */}
