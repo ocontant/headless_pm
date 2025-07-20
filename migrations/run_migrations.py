@@ -26,7 +26,8 @@ def run_all_migrations():
         "migrate_to_text_columns.py", 
         "migrate_connection_type.py",
         "migrate_service_ping.py",
-        "add_agent_status_column.py"
+        "add_agent_status_column.py",
+        "add_repository_fields.py"
     ]
     
     print("Running all migrations...")

@@ -67,17 +67,30 @@ class HeadlessPMClient:
             sys.exit(1)
     
     # Project Management
-    def create_project(self, name: str, description: str, shared_path: str = "./shared", 
+    def create_project(self, name: str, description: str, repository_url: str,
+                      shared_path: str = "./shared", 
                       instructions_path: str = "./agent_instructions", 
-                      project_docs_path: str = "./docs"):
-        """Create a new project"""
+                      project_docs_path: str = "./docs",
+                      repository_main_branch: str = "main",
+                      code_guidelines_path: Optional[str] = None,
+                      repository_clone_path: Optional[str] = None):
+        """Create a new project with repository configuration"""
         data = {
             "name": name,
             "description": description,
             "shared_path": shared_path,
             "instructions_path": instructions_path,
-            "project_docs_path": project_docs_path
+            "project_docs_path": project_docs_path,
+            "repository_url": repository_url,
+            "repository_main_branch": repository_main_branch
         }
+        
+        # Add optional fields if provided
+        if code_guidelines_path:
+            data["code_guidelines_path"] = code_guidelines_path
+        if repository_clone_path:
+            data["repository_clone_path"] = repository_clone_path
+            
         return self._request("POST", "/api/v1/projects", json=data)
     
     def list_projects(self):
@@ -628,9 +641,13 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
     project_create = project_sub.add_parser("create", help="Create new project")
     project_create.add_argument("--name", required=True, help="Project name")
     project_create.add_argument("--description", required=True, help="Project description")
+    project_create.add_argument("--repository-url", required=True, help="Git repository URL (e.g., https://github.com/user/repo.git)")
     project_create.add_argument("--shared-path", default="./shared", help="Shared files path")
     project_create.add_argument("--instructions-path", default="./agent_instructions", help="Instructions path")
     project_create.add_argument("--docs-path", default="./docs", help="Documentation path")
+    project_create.add_argument("--repository-main-branch", default="main", help="Main branch name (default: main)")
+    project_create.add_argument("--code-guidelines-path", help="Path to code guidelines (optional)")
+    project_create.add_argument("--repository-clone-path", help="Local repository clone path (optional)")
     
     project_sub.add_parser("list", help="List all projects")
     
@@ -858,8 +875,15 @@ For detailed help on any command, use: python3 headless_pm_client.py <command> -
         if args.command == "projects":
             if args.project_action == "create":
                 result = client.create_project(
-                    args.name, args.description, args.shared_path, 
-                    args.instructions_path, args.docs_path
+                    args.name, 
+                    args.description, 
+                    args.repository_url,
+                    args.shared_path, 
+                    args.instructions_path, 
+                    args.docs_path,
+                    args.repository_main_branch,
+                    args.code_guidelines_path,
+                    args.repository_clone_path
                 )
             elif args.project_action == "list":
                 result = client.list_projects()

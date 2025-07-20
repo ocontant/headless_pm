@@ -54,6 +54,11 @@ export class HeadlessPMClient {
     instructions_path: string;
     project_docs_path: string;
     code_guidelines_path?: string;
+    
+    // Repository configuration
+    repository_url: string;
+    repository_main_branch: string;
+    repository_clone_path?: string;
   }) {
     const { data } = await this.client.post<Project>('/projects', project);
     return data;
@@ -189,9 +194,10 @@ export class HeadlessPMClient {
     feature_id: number;
     title: string;
     description?: string;
-    assigned_role?: AgentRole;
+    target_role: AgentRole;
     difficulty: string;
     complexity: string;
+    branch: string;
   }, agentId: string = 'dashboard-user') {
     const params = new URLSearchParams();
     params.append('agent_id', agentId);

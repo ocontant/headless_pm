@@ -15,6 +15,11 @@ class ProjectCreateRequest(BaseModel):
     instructions_path: str = Field(..., description="Path to agent instructions")
     project_docs_path: str = Field(..., description="Path to project documentation")
     code_guidelines_path: Optional[str] = Field(None, description="Path to code guidelines")
+    
+    # Repository configuration
+    repository_url: str = Field(..., description="Git repository URL (e.g., https://github.com/user/repo.git)")
+    repository_main_branch: str = Field("main", description="Main branch name (e.g., main, master)")
+    repository_clone_path: Optional[str] = Field(None, description="Local path where repository should be cloned")
 
 class ProjectUpdateRequest(BaseModel):
     description: Optional[str] = Field(None, description="Updated project description")
@@ -22,6 +27,11 @@ class ProjectUpdateRequest(BaseModel):
     instructions_path: Optional[str] = Field(None, description="Updated instructions path")
     project_docs_path: Optional[str] = Field(None, description="Updated documentation path")
     code_guidelines_path: Optional[str] = Field(None, description="Updated code guidelines path")
+    
+    # Repository configuration
+    repository_url: Optional[str] = Field(None, description="Updated repository URL")
+    repository_main_branch: Optional[str] = Field(None, description="Updated main branch name")
+    repository_clone_path: Optional[str] = Field(None, description="Updated repository clone path")
 
 class AgentRegisterRequest(BaseModel):
     agent_id: str = Field(..., description="Unique agent identifier (e.g., 'frontend_dev_senior_001')")
@@ -175,6 +185,12 @@ class ProjectResponse(BaseModel):
     instructions_path: str
     project_docs_path: str
     code_guidelines_path: Optional[str] = None
+    
+    # Repository configuration
+    repository_url: str
+    repository_main_branch: str
+    repository_clone_path: Optional[str] = None
+    
     created_at: datetime
     updated_at: datetime
     agent_count: Optional[int] = 0

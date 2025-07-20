@@ -75,6 +75,12 @@ export interface Project {
   instructions_path: string;
   project_docs_path: string;
   code_guidelines_path?: string;
+  
+  // Repository configuration
+  repository_url: string;
+  repository_main_branch: string;
+  repository_clone_path?: string;
+  
   created_at: string;
   updated_at: string;
   agent_count?: number;

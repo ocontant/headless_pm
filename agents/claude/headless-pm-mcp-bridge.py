@@ -92,6 +92,25 @@ async def handle_request(request):
                         }
                     },
                     {
+                        "name": "create_project",
+                        "description": "Create a new project with repository configuration",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Project name"},
+                                "description": {"type": "string", "description": "Project description"},
+                                "repository_url": {"type": "string", "description": "Git repository URL (e.g., https://github.com/user/repo.git)"},
+                                "repository_main_branch": {"type": "string", "description": "Main branch name", "default": "main"},
+                                "shared_path": {"type": "string", "description": "Shared files path", "default": "/shared"},
+                                "instructions_path": {"type": "string", "description": "Instructions path", "default": "/instructions"},
+                                "project_docs_path": {"type": "string", "description": "Project docs path", "default": "/docs"},
+                                "code_guidelines_path": {"type": "string", "description": "Code guidelines path (optional)"},
+                                "repository_clone_path": {"type": "string", "description": "Local repository clone path (optional)"}
+                            },
+                            "required": ["name", "description", "repository_url"]
+                        }
+                    },
+                    {
                         "name": "register_agent",
                         "description": "Register as an agent with Headless PM",
                         "inputSchema": {
@@ -448,6 +467,32 @@ async def handle_request(request):
                                 text += f"\nErrors: {'; '.join(error_messages)}"
                         else:
                             text = f"Failed to register in any projects. Errors: {'; '.join(error_messages)}"
+            
+            elif tool == "create_project":
+                payload = {
+                    "name": args["name"],
+                    "description": args["description"],
+                    "repository_url": args["repository_url"],
+                    "repository_main_branch": args.get("repository_main_branch", "main"),
+                    "shared_path": args.get("shared_path", "/shared"),
+                    "instructions_path": args.get("instructions_path", "/instructions"),
+                    "project_docs_path": args.get("project_docs_path", "/docs")
+                }
+                
+                # Add optional fields if provided
+                if "code_guidelines_path" in args and args["code_guidelines_path"]:
+                    payload["code_guidelines_path"] = args["code_guidelines_path"]
+                if "repository_clone_path" in args and args["repository_clone_path"]:
+                    payload["repository_clone_path"] = args["repository_clone_path"]
+                
+                response = api_request("POST", "/projects", payload)
+                if "error" in response:
+                    text = f"Error creating project: {response['error']}"
+                else:
+                    text = f"Created project '{response['name']}' (ID: {response['id']}) with repository: {response['repository_url']}"
+                    # Auto-select the newly created project
+                    global current_project_id
+                    current_project_id = response['id']
             
             elif tool == "get_context":
                 if current_project_id:

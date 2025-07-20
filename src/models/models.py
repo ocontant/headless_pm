@@ -14,6 +14,12 @@ class Project(SQLModel, table=True):
     instructions_path: str
     project_docs_path: str
     code_guidelines_path: Optional[str] = Field(default=None)
+    
+    # Repository configuration
+    repository_url: str = Field(description="Git repository URL (e.g., https://github.com/user/repo.git)")
+    repository_main_branch: str = Field(default="main", description="Main branch name (e.g., main, master)")
+    repository_clone_path: Optional[str] = Field(default=None, description="Local path where repository is cloned")
+    
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
