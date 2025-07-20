@@ -153,7 +153,9 @@ start_service() {
     log_info "Starting $service_description..."
     
     # Start the service in background and capture PID
-    nohup bash -c "$service_command" > "$logfile" 2>&1 &
+    # Ensure virtual environment is activated in the service command
+    local full_command="source $PROJECT_ROOT/$EXPECTED_VENV/bin/activate && $service_command"
+    nohup bash -c "$full_command" > "$logfile" 2>&1 &
     local pid=$!
     
     # Save PID to file
