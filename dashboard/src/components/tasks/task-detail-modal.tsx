@@ -69,7 +69,6 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<TaskUpdateRequest>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [selectedAgentForAssignment, setSelectedAgentForAssignment] = useState<string>('');
   const updateTaskMutation = useUpdateTaskDetails();
   const deleteTaskMutation = useDeleteTask();
   const assignTaskMutation = useAssignTaskToAgent();
@@ -83,17 +82,37 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       description: task.description || '',
       target_role: task.target_role,
       difficulty: task.difficulty,
-      complexity: task.complexity
+      complexity: task.complexity,
+      assigned_agent_id: task.locked_by || '' // Use locked_by as the assigned agent
     });
     setIsEditing(true);
   };
 
   const handleSave = async () => {
     try {
-      await updateTaskMutation.mutateAsync({
-        taskId: task.id,
-        updates: editData
-      });
+      // First, update task details (excluding agent assignment)
+      const { assigned_agent_id, ...taskUpdates } = editData;
+      
+      if (Object.keys(taskUpdates).some(key => taskUpdates[key] !== undefined)) {
+        await updateTaskMutation.mutateAsync({
+          taskId: task.id,
+          updates: taskUpdates
+        });
+      }
+      
+      // Handle agent assignment separately if it changed
+      if (assigned_agent_id !== undefined && assigned_agent_id !== (task.locked_by || '')) {
+        if (assigned_agent_id && assigned_agent_id.trim()) {
+          // Assign to new agent
+          await assignTaskMutation.mutateAsync({
+            taskId: task.id,
+            targetAgentId: assigned_agent_id,
+            assignerAgentId: 'dashboard-user'
+          });
+        }
+        // Note: We don't handle "unassigning" since the API doesn't support it directly
+      }
+      
       setIsEditing(false);
       setEditData({});
       // Note: The modal will automatically refresh via React Query cache invalidation
@@ -120,21 +139,6 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
     }
   };
 
-  const handleAssignAgent = async () => {
-    if (!selectedAgentForAssignment) return;
-    
-    try {
-      await assignTaskMutation.mutateAsync({
-        taskId: task.id,
-        targetAgentId: selectedAgentForAssignment,
-        assignerAgentId: 'dashboard-user' // Dashboard user is doing the assignment
-      });
-      setSelectedAgentForAssignment('');
-    } catch (error) {
-      console.error('Failed to assign agent:', error);
-      // Error is handled by the mutation hook's error state
-    }
-  };
 
   const getTaskIcon = (title: string) => {
     const lower = title.toLowerCase();
@@ -361,26 +365,23 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                   </div>
                 )}
 
-                {/* Agent Assignment Section */}
-                <Separator />
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Agent Assignment</span>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Select 
-                      value={selectedAgentForAssignment} 
-                      onValueChange={setSelectedAgentForAssignment}
-                      disabled={assignTaskMutation.isPending}
+                {/* Assigned Agent Field */}
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Assigned:</span>
+                  {isEditing ? (
+                    <Select
+                      value={editData.assigned_agent_id || ''}
+                      onValueChange={(value) => setEditData({ ...editData, assigned_agent_id: value })}
+                      disabled={updateTaskMutation.isPending || assignTaskMutation.isPending}
                     >
-                      <SelectTrigger className="flex-1 h-8 text-xs">
-                        <SelectValue placeholder="Select agent to assign..." />
+                      <SelectTrigger className="w-[180px] h-7 text-xs">
+                        <SelectValue placeholder="No agent assigned" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="">No agent assigned</SelectItem>
                         {agents
-                          .filter(agent => agent.role !== 'ui_admin') // Filter out UI admins from assignment
+                          .filter(agent => agent.role !== 'ui_admin') // Filter out UI admins
                           .map(agent => (
                             <SelectItem key={agent.id} value={agent.agent_id}>
                               {agent.name || agent.agent_id} ({agent.role})
@@ -388,27 +389,11 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                           ))}
                       </SelectContent>
                     </Select>
-                    
-                    <Button
-                      size="sm"
-                      className="h-8 px-3"
-                      onClick={handleAssignAgent}
-                      disabled={!selectedAgentForAssignment || assignTaskMutation.isPending}
-                    >
-                      {assignTaskMutation.isPending ? (
-                        <>
-                          <span className="animate-spin mr-1">⏳</span>
-                          Assigning...
-                        </>
-                      ) : (
-                        'Assign'
-                      )}
-                    </Button>
-                  </div>
-                  
-                  <div className="text-xs text-muted-foreground">
-                    Assign this task to a specific agent. Only Project PMs can assign tasks.
-                  </div>
+                  ) : (
+                    <Badge variant="outline" className="text-xs">
+                      {task.locked_by || 'No agent assigned'}
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>

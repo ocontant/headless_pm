@@ -174,6 +174,7 @@ export interface TaskUpdateRequest {
   target_role?: AgentRole;
   difficulty?: TaskDifficulty;
   complexity?: TaskComplexity;
+  assigned_agent_id?: string;
 }
 
 export interface TimeEntryCreateRequest {
