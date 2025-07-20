@@ -31,6 +31,10 @@ def create_project(request: ProjectCreateRequest, db: Session) -> Project:
     db.commit()
     db.refresh(project)
     
+    # Auto-create dashboard-user agent for the new project
+    from src.models.database import ensure_dashboard_user
+    ensure_dashboard_user(project.id, db)
+    
     return project
 
 

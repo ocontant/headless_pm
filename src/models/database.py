@@ -76,17 +76,23 @@ def ensure_default_project():
             ensure_dashboard_user(default_project.id, session)
         else:
             print("✅ Default Headless-PM project already exists")
-            # Ensure dashboard-user exists for existing project
-            ensure_dashboard_user(headless_pm.id, session)
+        
+        # Ensure dashboard-user exists for ALL projects
+        all_projects = session.exec(select(Project)).all()
+        for project in all_projects:
+            ensure_dashboard_user(project.id, session)
 
 def ensure_dashboard_user(project_id: int, session: Session):
     """Ensure the dashboard-user agent exists for the given project with UI_ADMIN privileges."""
     from .models import Agent  # Import here to avoid circular imports
     from .enums import AgentRole, DifficultyLevel, ConnectionType, AgentStatus
     
-    # Check if dashboard-user agent exists
+    # Check if dashboard-user agent exists for this project
     dashboard_user = session.exec(
-        select(Agent).where(Agent.agent_id == "dashboard-user")
+        select(Agent).where(
+            Agent.agent_id == "dashboard-user",
+            Agent.project_id == project_id
+        )
     ).first()
     
     if not dashboard_user:
