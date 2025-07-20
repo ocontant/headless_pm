@@ -351,11 +351,18 @@ def update_task_status(
         updated_at=task.updated_at
     )
     
-    # Get next available task for this agent
-    next_task = get_next_task_for_agent(agent, db)
+    # Get next available task for this agent (but not for UI admins)
+    next_task = None
+    if agent.role != AgentRole.UI_ADMIN:
+        next_task = get_next_task_for_agent(agent, db)
     
     # Determine workflow status
-    if next_task:
+    if agent.role == AgentRole.UI_ADMIN:
+        # UI admins don't follow normal agent workflows
+        workflow_status = "management"
+        auto_continue = False
+        session_momentum = "neutral"
+    elif next_task:
         workflow_status = "continue"
         auto_continue = True
         session_momentum = "high"
@@ -370,7 +377,11 @@ def update_task_status(
         workflow_status=workflow_status,
         task_completed=task_id,
         auto_continue=auto_continue,
-        continuation_prompt="Continue with the next task without waiting for confirmation" if next_task else "No more tasks available",
+        continuation_prompt=(
+            "Task status updated successfully" if agent.role == AgentRole.UI_ADMIN
+            else "Continue with the next task without waiting for confirmation" if next_task 
+            else "No more tasks available"
+        ),
         session_momentum=session_momentum
     )
 
