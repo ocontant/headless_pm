@@ -344,7 +344,7 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
         setLastTasksUpdate(tasksString);
       }
     }
-  }, [tasks, lastTasksUpdate]);
+  }, [tasks]);
 
   // Apply filters to tasks with memoization to prevent unnecessary recalculations
   const filteredTasks = useMemo(() => {

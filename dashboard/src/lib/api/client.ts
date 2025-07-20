@@ -201,20 +201,11 @@ export class HeadlessPMClient {
   }
 
   async updateTaskStatus(taskId: number, status: TaskStatus, agentId: string) {
-    console.log('UpdateTaskStatus called with:', { taskId, status, agentId });
-    console.log('Status type:', typeof status);
-    console.log('Status value:', JSON.stringify(status));
-    
     const url = `/tasks/${taskId}/status?agent_id=${encodeURIComponent(agentId)}`;
     const payload = { status };
     
-    console.log('Request URL:', url);
-    console.log('Request payload:', JSON.stringify(payload));
-    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
-    
     try {
       const { data } = await this.client.put<Task>(url, payload);
-      console.log('UpdateTaskStatus success:', data);
       return data;
     } catch (error) {
       console.error('UpdateTaskStatus error:', error);
@@ -228,18 +219,11 @@ export class HeadlessPMClient {
   }
 
   async updateTaskDetails(taskId: number, updates: TaskUpdateRequest) {
-    console.log('UpdateTaskDetails called with:', { taskId, updates });
-    
     const url = `/tasks/${taskId}/details?agent_id=dashboard-user`;
     const payload = updates;
     
-    console.log('Request URL:', url);
-    console.log('Request payload:', JSON.stringify(payload));
-    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
-    
     try {
       const { data } = await this.client.put<Task>(url, payload);
-      console.log('UpdateTaskDetails success:', data);
       return data;
     } catch (error) {
       console.error('UpdateTaskDetails error:', error);
@@ -253,16 +237,10 @@ export class HeadlessPMClient {
   }
 
   async deleteTask(taskId: number) {
-    console.log('DeleteTask called with taskId:', taskId);
-    
     const url = `/tasks/${taskId}?agent_id=dashboard-user`;
-    
-    console.log('Request URL:', url);
-    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
     
     try {
       const { data } = await this.client.delete<{ message: string }>(url);
-      console.log('DeleteTask success:', data);
       return data;
     } catch (error) {
       console.error('DeleteTask error:', error);
@@ -285,18 +263,11 @@ export class HeadlessPMClient {
 
   // Time tracking endpoints
   async addTimeEntry(taskId: number, request: TimeEntryCreateRequest) {
-    console.log('AddTimeEntry called with:', { taskId, request });
-    
     const url = `/tasks/${taskId}/time?agent_id=dashboard-user`;
     const payload = request;
     
-    console.log('Request URL:', url);
-    console.log('Request payload:', JSON.stringify(payload));
-    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
-    
     try {
       const { data } = await this.client.post<TimeEntry>(url, payload);
-      console.log('AddTimeEntry success:', data);
       return data;
     } catch (error) {
       console.error('AddTimeEntry error:', error);
@@ -310,16 +281,10 @@ export class HeadlessPMClient {
   }
 
   async getTaskTimeTracking(taskId: number) {
-    console.log('GetTaskTimeTracking called with taskId:', taskId);
-    
     const url = `/tasks/${taskId}/time?agent_id=dashboard-user`;
-    
-    console.log('Request URL:', url);
-    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
     
     try {
       const { data } = await this.client.get<TaskTimeTracking>(url);
-      console.log('GetTaskTimeTracking success:', data);
       return data;
     } catch (error) {
       console.error('GetTaskTimeTracking error:', error);
@@ -333,16 +298,10 @@ export class HeadlessPMClient {
   }
 
   async deleteTimeEntry(entryId: number) {
-    console.log('DeleteTimeEntry called with entryId:', entryId);
-    
     const url = `/time-entries/${entryId}?agent_id=dashboard-user`;
-    
-    console.log('Request URL:', url);
-    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
     
     try {
       const { data } = await this.client.delete<{ message: string }>(url);
-      console.log('DeleteTimeEntry success:', data);
       return data;
     } catch (error) {
       console.error('DeleteTimeEntry error:', error);
@@ -408,9 +367,7 @@ export class HeadlessPMClient {
     // Always explicitly set unread_only parameter
     params.append('unread_only', unreadOnly ? 'true' : 'false');
     
-    console.log('Fetching mentions with params:', params.toString());
     const { data } = await this.client.get<Mention[]>(`/mentions?${params.toString()}`);
-    console.log('Mentions response:', data);
     return data;
   }
 
@@ -425,9 +382,7 @@ export class HeadlessPMClient {
     }
     params.append('unread_only', unreadOnly ? 'true' : 'false');
     
-    console.log('Fetching mentions by role with params:', params.toString());
     const { data } = await this.client.get<Mention[]>(`/mentions/by-role?${params.toString()}`);
-    console.log('Mentions by role response:', data);
     return data;
   }
 

@@ -291,7 +291,6 @@ export const useCreateDocument = () => {
 // Mention hooks
 export const useMentions = (agentId?: string, unreadOnly = false, enabled = true) => {
   const { apiClient, currentProjectId } = useProjectContext();
-  console.log('useMentions called with agentId:', agentId);
   return useQuery({
     queryKey: ['mentions', agentId, unreadOnly, currentProjectId],
     queryFn: () => apiClient.getMentions(agentId, unreadOnly),
@@ -303,7 +302,6 @@ export const useMentions = (agentId?: string, unreadOnly = false, enabled = true
 
 export const useMentionsByRole = (role?: string, unreadOnly = false, enabled = true) => {
   const { apiClient, currentProjectId } = useProjectContext();
-  console.log('useMentionsByRole called with role:', role);
   return useQuery({
     queryKey: ['mentions', 'by-role', role, unreadOnly, currentProjectId],
     queryFn: () => apiClient.getMentionsByRole(role, unreadOnly),
