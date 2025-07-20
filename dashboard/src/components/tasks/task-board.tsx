@@ -430,8 +430,9 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
 
     if (!over) return;
 
-    // Use dashboard-user as default agent for UI operations
-    const agentId = selectedAgentId || 'dashboard-user';
+    try {
+      // Use dashboard-user as default agent for UI operations
+      const agentId = selectedAgentId || 'dashboard-user';
 
     // Extract task ID from the string ID format "task-123"
     const taskIdString = active.id.toString().replace('task-', '');
@@ -492,17 +493,21 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
     setLocalTasks(updatedTasks);
     setLastTasksUpdate(JSON.stringify(updatedTasks));
 
-    try {
-      // Call the API to update the task status
-      await handleStatusChange(task, newStatus);
-      // Refresh the data from the server
-      mutate();
+      try {
+        // Call the API to update the task status
+        await handleStatusChange(task, newStatus);
+        // Refresh the data from the server
+        mutate();
+      } catch (error) {
+        // Revert the optimistic update on error
+        setLocalTasks(localTasks);
+        setLastTasksUpdate(JSON.stringify(localTasks));
+        console.error('Failed to update task status:', error);
+        alert(`Failed to update task status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } catch (error) {
-      // Revert the optimistic update on error
-      setLocalTasks(localTasks);
-      setLastTasksUpdate(JSON.stringify(localTasks));
-      console.error('Failed to update task status:', error);
-      alert(`Failed to update task status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error in drag and drop handler:', error);
+      alert(`An error occurred while updating the task: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [localTasks, mutate, handleStatusChange, selectedAgentId]);
 

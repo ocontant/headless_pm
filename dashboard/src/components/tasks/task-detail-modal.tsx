@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUpdateTaskDetails, useDeleteTask, useAgents, useAssignTaskToAgent } from '@/lib/hooks/useApi';
 import { TimeTrackingSection } from './time-tracking-section';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { validateSelectValue, normalizeSelectValue, validateFormData } from '@/lib/utils/validation';
 import { 
   User, 
   Clock, 
@@ -83,13 +85,20 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       target_role: task.target_role,
       difficulty: task.difficulty,
       complexity: task.complexity,
-      assigned_agent_id: task.locked_by || '__none__' // Use locked_by as the assigned agent
+      assigned_agent_id: validateSelectValue(task.locked_by) // Use locked_by as the assigned agent
     });
     setIsEditing(true);
   };
 
   const handleSave = async () => {
     try {
+      // Validate form data
+      const validation = validateFormData(editData, ['title']);
+      if (!validation.isValid) {
+        console.error('Form validation failed:', validation.errors);
+        return;
+      }
+
       // First, update task details (excluding agent assignment)
       const { assigned_agent_id, ...taskUpdates } = editData;
       
@@ -101,13 +110,15 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       }
       
       // Handle agent assignment separately if it changed
-      const currentAgent = task.locked_by || '__none__';
+      const currentAgent = validateSelectValue(task.locked_by);
+      const newAgent = normalizeSelectValue(assigned_agent_id || '__none__');
+      
       if (assigned_agent_id !== undefined && assigned_agent_id !== currentAgent) {
-        if (assigned_agent_id && assigned_agent_id !== '__none__') {
+        if (newAgent && newAgent !== '__none__') {
           // Assign to new agent
           await assignTaskMutation.mutateAsync({
             taskId: task.id,
-            targetAgentId: assigned_agent_id,
+            targetAgentId: newAgent,
             assignerAgentId: 'dashboard-user'
           });
         }
@@ -372,7 +383,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                   <span className="text-sm text-muted-foreground">Assigned:</span>
                   {isEditing ? (
                     <Select
-                      value={editData.assigned_agent_id || ''}
+                      value={validateSelectValue(editData.assigned_agent_id)}
                       onValueChange={(value) => setEditData({ ...editData, assigned_agent_id: value })}
                       disabled={updateTaskMutation.isPending || assignTaskMutation.isPending}
                     >
@@ -510,7 +521,26 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
           )}
 
           {/* Time Tracking Section */}
-          <TimeTrackingSection taskId={task.id} />
+          <ErrorBoundary
+            fallback={
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Time Tracking
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Time tracking temporarily unavailable</p>
+                  </div>
+                </CardContent>
+              </Card>
+            }
+          >
+            <TimeTrackingSection taskId={task.id} />
+          </ErrorBoundary>
 
           {/* Comments Section - Placeholder for future implementation */}
           <Card>
