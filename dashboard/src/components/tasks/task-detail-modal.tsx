@@ -83,7 +83,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       target_role: task.target_role,
       difficulty: task.difficulty,
       complexity: task.complexity,
-      assigned_agent_id: task.locked_by || '' // Use locked_by as the assigned agent
+      assigned_agent_id: task.locked_by || '__none__' // Use locked_by as the assigned agent
     });
     setIsEditing(true);
   };
@@ -101,8 +101,9 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       }
       
       // Handle agent assignment separately if it changed
-      if (assigned_agent_id !== undefined && assigned_agent_id !== (task.locked_by || '')) {
-        if (assigned_agent_id && assigned_agent_id.trim()) {
+      const currentAgent = task.locked_by || '__none__';
+      if (assigned_agent_id !== undefined && assigned_agent_id !== currentAgent) {
+        if (assigned_agent_id && assigned_agent_id !== '__none__') {
           // Assign to new agent
           await assignTaskMutation.mutateAsync({
             taskId: task.id,
@@ -379,7 +380,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                         <SelectValue placeholder="No agent assigned" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No agent assigned</SelectItem>
+                        <SelectItem value="__none__">No agent assigned</SelectItem>
                         {agents
                           .filter(agent => agent.role !== 'ui_admin') // Filter out UI admins
                           .map(agent => (
