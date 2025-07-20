@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUpdateTaskDetails, useDeleteTask } from '@/lib/hooks/useApi';
+import { useUpdateTaskDetails, useDeleteTask, useAgents, useAssignTaskToAgent } from '@/lib/hooks/useApi';
 import { TimeTrackingSection } from './time-tracking-section';
 import { 
   User, 
@@ -69,8 +69,11 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<TaskUpdateRequest>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedAgentForAssignment, setSelectedAgentForAssignment] = useState<string>('');
   const updateTaskMutation = useUpdateTaskDetails();
   const deleteTaskMutation = useDeleteTask();
+  const assignTaskMutation = useAssignTaskToAgent();
+  const { data: agents = [] } = useAgents();
 
   if (!task) return null;
 
@@ -113,6 +116,22 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
       onClose(); // Close modal after successful deletion
     } catch (error) {
       console.error('Failed to delete task:', error);
+      // Error is handled by the mutation hook's error state
+    }
+  };
+
+  const handleAssignAgent = async () => {
+    if (!selectedAgentForAssignment) return;
+    
+    try {
+      await assignTaskMutation.mutateAsync({
+        taskId: task.id,
+        targetAgentId: selectedAgentForAssignment,
+        assignerAgentId: 'dashboard-user' // Dashboard user is doing the assignment
+      });
+      setSelectedAgentForAssignment('');
+    } catch (error) {
+      console.error('Failed to assign agent:', error);
       // Error is handled by the mutation hook's error state
     }
   };
@@ -225,6 +244,15 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
           </div>
         )}
 
+        {assignTaskMutation.isError && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center gap-2 text-red-700">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm">
+              Failed to assign task: {assignTaskMutation.error instanceof Error ? assignTaskMutation.error.message : 'Unknown error'}
+            </span>
+          </div>
+        )}
+
         <div className="space-y-6">
           {/* Metadata Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -332,6 +360,56 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     </Badge>
                   </div>
                 )}
+
+                {/* Agent Assignment Section */}
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Agent Assignment</span>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Select 
+                      value={selectedAgentForAssignment} 
+                      onValueChange={setSelectedAgentForAssignment}
+                      disabled={assignTaskMutation.isPending}
+                    >
+                      <SelectTrigger className="flex-1 h-8 text-xs">
+                        <SelectValue placeholder="Select agent to assign..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agents
+                          .filter(agent => agent.role !== 'ui_admin') // Filter out UI admins from assignment
+                          .map(agent => (
+                            <SelectItem key={agent.id} value={agent.agent_id}>
+                              {agent.name || agent.agent_id} ({agent.role})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Button
+                      size="sm"
+                      className="h-8 px-3"
+                      onClick={handleAssignAgent}
+                      disabled={!selectedAgentForAssignment || assignTaskMutation.isPending}
+                    >
+                      {assignTaskMutation.isPending ? (
+                        <>
+                          <span className="animate-spin mr-1">⏳</span>
+                          Assigning...
+                        </>
+                      ) : (
+                        'Assign'
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground">
+                    Assign this task to a specific agent. Only Project PMs can assign tasks.
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

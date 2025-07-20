@@ -204,6 +204,22 @@ export const useDeleteTimeEntry = () => {
   });
 };
 
+export const useAssignTaskToAgent = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, targetAgentId, assignerAgentId }: { 
+      taskId: number; 
+      targetAgentId: string; 
+      assignerAgentId: string; 
+    }) => apiClient.assignTaskToAgent(taskId, targetAgentId, assignerAgentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['agents', currentProjectId] });
+    }
+  });
+};
+
 // Agent hooks
 export const useAgents = () => {
   const { apiClient, currentProjectId } = useProjectContext();

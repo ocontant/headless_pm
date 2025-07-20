@@ -377,13 +377,13 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       throw new Error(`Invalid status: ${newStatus}`);
     }
     
-    // Get agent ID from state or localStorage
-    let agentId = selectedAgentId || (typeof window !== 'undefined' ? localStorage.getItem('agent_id') : '');
+    // Default to dashboard-user when no agent is selected
+    let agentId = selectedAgentId || (typeof window !== 'undefined' ? localStorage.getItem('agent_id') : '') || 'dashboard-user';
     
     // Clear invalid agent IDs that contain colons
     if (typeof window !== 'undefined' && agentId && agentId.includes(':')) {
       localStorage.removeItem('agent_id');
-      agentId = '';
+      agentId = 'dashboard-user';
     }
     
     console.log('HandleStatusChange debug:', {
@@ -394,11 +394,6 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       newStatus,
       newStatusType: typeof newStatus
     });
-    
-    if (!agentId) {
-      alert('Please select an agent ID to update task status');
-      throw new Error('No agent ID selected');
-    }
     
     try {
       const apiClient = new HeadlessPMClient();
@@ -435,12 +430,8 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
 
     if (!over) return;
 
-    // Check if agent is selected before allowing drop
-    const agentId = selectedAgentId;
-    if (!agentId) {
-      alert('Please select an agent to move tasks. Use the dropdown above to select an agent.');
-      return; // Prevent the drop
-    }
+    // Use dashboard-user as default agent for UI operations
+    const agentId = selectedAgentId || 'dashboard-user';
 
     // Extract task ID from the string ID format "task-123"
     const taskIdString = active.id.toString().replace('task-', '');
@@ -543,11 +534,11 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
   return (
     <div className="space-y-4">
       {/* Agent Selector */}
-      <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+      <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
         <span className="text-sm font-medium">Acting as Agent:</span>
         <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
           <SelectTrigger className="w-fit min-w-[200px]">
-            <SelectValue placeholder="Select an agent..." />
+            <SelectValue placeholder="dashboard-user (default)" />
           </SelectTrigger>
           <SelectContent>
             {agents?.map(agent => (
@@ -557,9 +548,9 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
             ))}
           </SelectContent>
         </Select>
-        {!selectedAgentId && (
-          <span className="text-xs text-amber-600">⚠️ Select an agent to move tasks</span>
-        )}
+        <span className="text-xs text-blue-600">
+          {selectedAgentId ? `Tasks will be moved by ${selectedAgentId}` : 'Tasks will be moved by dashboard-user (default)'}
+        </span>
       </div>
 
       <DndContext
