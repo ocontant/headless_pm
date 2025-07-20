@@ -11,7 +11,8 @@ from src.api.schemas import (
     TaskCreateRequest, TaskResponse, TaskStatusUpdateRequest, TaskStatusUpdateResponse,
     TaskCommentRequest, TaskUpdateRequest,
     ProjectContextResponse, EpicResponse, FeatureResponse,
-    ChangelogResponse, MentionResponse
+    ChangelogResponse, MentionResponse,
+    TimeEntryCreateRequest, TimeEntryResponse, TaskTimeTrackingResponse
 )
 from src.api.dependencies import verify_api_key, get_db_public
 
@@ -330,6 +331,44 @@ def complete_task_manually_endpoint(
     description="Delete a task. Only dashboard-user can perform this action.")
 def delete_task_endpoint(task_id: int, agent_id: str, db: Session = Depends(get_session)):
     return delete_task(task_id, agent_id, db)
+
+
+# Time tracking endpoints
+@router.post("/tasks/{task_id}/time", response_model=TimeEntryResponse,
+    summary="Add time entry to task (Dashboard UI only)",
+    description="Add a time entry to a task. Only dashboard-user can perform this action. Supports shortcuts like 1h, 30m, 2d.")
+def add_time_entry_endpoint(
+    task_id: int, 
+    request: TimeEntryCreateRequest, 
+    agent_id: str, 
+    db: Session = Depends(get_session)
+):
+    from src.services.time_tracking_service import add_time_entry
+    return add_time_entry(task_id, request, agent_id, db)
+
+
+@router.get("/tasks/{task_id}/time", response_model=TaskTimeTrackingResponse,
+    summary="Get task time tracking (Dashboard UI only)",
+    description="Get time tracking information for a task. Only dashboard-user can access this.")
+def get_task_time_tracking_endpoint(
+    task_id: int, 
+    agent_id: str, 
+    db: Session = Depends(get_session)
+):
+    from src.services.time_tracking_service import get_task_time_tracking
+    return get_task_time_tracking(task_id, agent_id, db)
+
+
+@router.delete("/time-entries/{entry_id}",
+    summary="Delete time entry (Dashboard UI only)",
+    description="Delete a time entry. Only dashboard-user can perform this action.")
+def delete_time_entry_endpoint(
+    entry_id: int, 
+    agent_id: str, 
+    db: Session = Depends(get_session)
+):
+    from src.services.time_tracking_service import delete_time_entry
+    return delete_time_entry(entry_id, agent_id, db)
 
 
 # Changelog endpoint

@@ -4,7 +4,8 @@ import { HeadlessPMClient } from '@/lib/api/client';
 import { useProjectContext } from '@/lib/contexts/project-context';
 import { 
   AgentRole, SkillLevel, TaskStatus, DocumentType,
-  Epic, Feature, Task, Agent, Document, Service, Mention, Project, TaskUpdateRequest
+  Epic, Feature, Task, Agent, Document, Service, Mention, Project, TaskUpdateRequest,
+  TimeEntryCreateRequest, TimeEntry, TaskTimeTracking
 } from '@/lib/types';
 
 // API client is now managed by ProjectContext
@@ -161,6 +162,43 @@ export const useDeleteTask = () => {
   return useMutation({
     mutationFn: (taskId: number) => apiClient.deleteTask(taskId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
+    }
+  });
+};
+
+// Time tracking hooks
+export const useTaskTimeTracking = (taskId?: number, enabled = true) => {
+  const { apiClient, currentProjectId } = useProjectContext();
+  return useQuery({
+    queryKey: ['task-time-tracking', taskId, currentProjectId],
+    queryFn: () => apiClient.getTaskTimeTracking(taskId!),
+    enabled: enabled && !!taskId && !!currentProjectId,
+    refetchOnWindowFocus: false
+  });
+};
+
+export const useAddTimeEntry = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, request }: { taskId: number; request: TimeEntryCreateRequest }) =>
+      apiClient.addTimeEntry(taskId, request),
+    onSuccess: (_, { taskId }) => {
+      queryClient.invalidateQueries({ queryKey: ['task-time-tracking', taskId, currentProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
+    }
+  });
+};
+
+export const useDeleteTimeEntry = () => {
+  const { apiClient, currentProjectId } = useProjectContext();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entryId, taskId }: { entryId: number; taskId: number }) =>
+      apiClient.deleteTimeEntry(entryId),
+    onSuccess: (_, { taskId }) => {
+      queryClient.invalidateQueries({ queryKey: ['task-time-tracking', taskId, currentProjectId] });
       queryClient.invalidateQueries({ queryKey: ['tasks', currentProjectId] });
     }
   });

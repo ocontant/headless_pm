@@ -179,6 +179,7 @@ class Task(SQLModel, table=True):
     evaluations: List["TaskEvaluation"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     changelogs: List["Changelog"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     mentions: List["Mention"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    time_entries: List["TimeEntry"] = Relationship(back_populates="task", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class TaskEvaluation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -265,6 +266,17 @@ class Service(SQLModel, table=True):
     __table_args__ = (
         UniqueConstraint("service_name", "project_id", name="uq_service_project"),
     )
+
+class TimeEntry(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    task_id: int = Field(foreign_key="task.id", index=True)
+    minutes: int = Field(description="Time spent in minutes (can be negative for removals)")
+    description: Optional[str] = Field(default=None, description="Optional description of the time entry")
+    created_by: str = Field(description="Agent ID who created this entry (must be dashboard-user)")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    # Relationship
+    task: Optional["Task"] = Relationship(back_populates="time_entries")
 
 class Mention(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

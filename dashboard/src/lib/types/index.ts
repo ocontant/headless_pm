@@ -153,6 +153,8 @@ export interface Task {
   updated_at?: string;
   task_type?: TaskType;             // Added: missing field
   poll_interval?: number;           // Added: missing field
+  total_time_minutes?: number;      // Time tracking
+  total_time_formatted?: string;    // Human-readable time
   assigned_agent?: Agent;           // Keep for UI convenience
   comments?: TaskComment[];
 }
@@ -172,6 +174,26 @@ export interface TaskUpdateRequest {
   target_role?: AgentRole;
   difficulty?: TaskDifficulty;
   complexity?: TaskComplexity;
+}
+
+export interface TimeEntryCreateRequest {
+  time_input: string;
+  description?: string;
+}
+
+export interface TimeEntry {
+  id: number;
+  task_id: number;
+  minutes: number;
+  description?: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface TaskTimeTracking {
+  total_minutes: number;
+  total_formatted: string;
+  entries: TimeEntry[];
 }
 
 export interface Document {

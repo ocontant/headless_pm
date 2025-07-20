@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUpdateTaskDetails, useDeleteTask } from '@/lib/hooks/useApi';
+import { TimeTrackingSection } from './time-tracking-section';
 import { 
   User, 
   Clock, 
@@ -443,6 +444,9 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
               </CardContent>
             </Card>
           )}
+
+          {/* Time Tracking Section */}
+          <TimeTrackingSection taskId={task.id} />
 
           {/* Comments Section - Placeholder for future implementation */}
           <Card>

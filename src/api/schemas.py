@@ -240,6 +240,8 @@ class TaskResponse(BaseModel):
     updated_at: datetime
     task_type: Optional[TaskType] = TaskType.REGULAR
     poll_interval: Optional[int] = None  # seconds for waiting tasks
+    total_time_minutes: Optional[int] = None  # Total time tracked for this task
+    total_time_formatted: Optional[str] = None  # Human-readable total time
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -287,6 +289,30 @@ class ChangelogResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+# Time tracking schemas
+class TimeEntryCreateRequest(BaseModel):
+    time_input: str = Field(..., description="Time in shortcut format (e.g., '1h', '30m', '2d') or minutes")
+    description: Optional[str] = Field(None, description="Optional description for the time entry", max_length=500)
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class TimeEntryResponse(BaseModel):
+    id: int
+    task_id: int
+    minutes: int
+    description: Optional[str] = None
+    created_by: str
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class TaskTimeTrackingResponse(BaseModel):
+    total_minutes: int = Field(description="Total time spent on task in minutes")
+    total_formatted: str = Field(description="Human-readable total time")
+    entries: List[TimeEntryResponse] = Field(description="Individual time entries")
+    
+    model_config = ConfigDict(from_attributes=True)
 
 # Document schemas
 class DocumentCreateRequest(BaseModel):

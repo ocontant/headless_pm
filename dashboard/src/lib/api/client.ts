@@ -3,7 +3,8 @@ import {
   Agent, Epic, Feature, Task, TaskComment, Document, 
   Mention, Service, ProjectContext, Changes,
   TaskStatus, AgentRole, SkillLevel, DocumentType,
-  Project, AgentAvailability, TaskUpdateRequest
+  Project, AgentAvailability, TaskUpdateRequest,
+  TimeEntryCreateRequest, TimeEntry, TaskTimeTracking
 } from '@/lib/types';
 
 export class HeadlessPMClient {
@@ -276,6 +277,78 @@ export class HeadlessPMClient {
       content
     });
     return data;
+  }
+
+  // Time tracking endpoints
+  async addTimeEntry(taskId: number, request: TimeEntryCreateRequest) {
+    console.log('AddTimeEntry called with:', { taskId, request });
+    
+    const url = `/tasks/${taskId}/time?agent_id=dashboard-user`;
+    const payload = request;
+    
+    console.log('Request URL:', url);
+    console.log('Request payload:', JSON.stringify(payload));
+    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
+    
+    try {
+      const { data } = await this.client.post<TimeEntry>(url, payload);
+      console.log('AddTimeEntry success:', data);
+      return data;
+    } catch (error) {
+      console.error('AddTimeEntry error:', error);
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      throw error;
+    }
+  }
+
+  async getTaskTimeTracking(taskId: number) {
+    console.log('GetTaskTimeTracking called with taskId:', taskId);
+    
+    const url = `/tasks/${taskId}/time?agent_id=dashboard-user`;
+    
+    console.log('Request URL:', url);
+    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
+    
+    try {
+      const { data } = await this.client.get<TaskTimeTracking>(url);
+      console.log('GetTaskTimeTracking success:', data);
+      return data;
+    } catch (error) {
+      console.error('GetTaskTimeTracking error:', error);
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      throw error;
+    }
+  }
+
+  async deleteTimeEntry(entryId: number) {
+    console.log('DeleteTimeEntry called with entryId:', entryId);
+    
+    const url = `/time-entries/${entryId}?agent_id=dashboard-user`;
+    
+    console.log('Request URL:', url);
+    console.log('Full API URL:', `${this.client.defaults.baseURL}${url}`);
+    
+    try {
+      const { data } = await this.client.delete<{ message: string }>(url);
+      console.log('DeleteTimeEntry success:', data);
+      return data;
+    } catch (error) {
+      console.error('DeleteTimeEntry error:', error);
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      }
+      throw error;
+    }
   }
 
   // Document endpoints
