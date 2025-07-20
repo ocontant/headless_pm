@@ -62,7 +62,7 @@ export function TaskFilters({ onFiltersChange }: TaskFiltersProps) {
               Project:
             </Label>
             <Select value={filters.project || 'all'} onValueChange={(value) => updateFilters('project', value)}>
-              <SelectTrigger id="project-filter" className="w-[140px]">
+              <SelectTrigger id="project-filter" className="w-[180px]">
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
@@ -71,8 +71,8 @@ export function TaskFilters({ onFiltersChange }: TaskFiltersProps) {
                   <SelectItem value="loading" disabled>Loading...</SelectItem>
                 ) : (
                   projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
-                      {project.name}
+                    <SelectItem key={project.id} value={project.id.toString()} title={project.name}>
+                      <span className="truncate">{project.name}</span>
                     </SelectItem>
                   ))
                 )}
@@ -113,7 +113,8 @@ export function TaskFilters({ onFiltersChange }: TaskFiltersProps) {
                 <SelectItem value={AgentRole.BackendDev}>Backend Dev</SelectItem>
                 <SelectItem value={AgentRole.QA}>QA</SelectItem>
                 <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
-                <SelectItem value={AgentRole.PM}>PM</SelectItem>
+                <SelectItem value={AgentRole.ProjectPM}>Project PM</SelectItem>
+                <SelectItem value={AgentRole.UIAdmin}>UI Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>

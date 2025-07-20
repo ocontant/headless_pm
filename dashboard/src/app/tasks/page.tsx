@@ -58,6 +58,7 @@ export default function TasksPage() {
 
         <TaskFilters onFiltersChange={setFilters} />
         
+        
         <div className="min-h-[600px]">
           {view === 'board' && <TaskBoard filters={filters} />}
           {view === 'timeline' && <TaskTimeline filters={filters} />}

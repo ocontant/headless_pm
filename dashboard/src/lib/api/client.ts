@@ -172,7 +172,11 @@ export class HeadlessPMClient {
 
   // Task endpoints
   async getTasks() {
-    const { data } = await this.client.get<Task[]>('/tasks');
+    let url = '/tasks';
+    if (this.currentProjectId) {
+      url += `?project_id=${this.currentProjectId}`;
+    }
+    const { data } = await this.client.get<Task[]>(url);
     return data;
   }
 

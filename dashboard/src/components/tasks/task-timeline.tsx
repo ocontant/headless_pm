@@ -12,7 +12,8 @@ const ROLE_COLORS = {
   [AgentRole.BackendDev]: 'bg-green-500',
   [AgentRole.QA]: 'bg-purple-500',
   [AgentRole.Architect]: 'bg-orange-500',
-  [AgentRole.PM]: 'bg-red-500'
+  [AgentRole.ProjectPM]: 'bg-red-500',
+  [AgentRole.UIAdmin]: 'bg-slate-500'
 };
 
 const STATUS_COLORS = {

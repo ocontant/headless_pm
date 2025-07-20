@@ -145,7 +145,7 @@ export function AgentAvailabilityDashboard({ projectId, className = '' }: AgentA
         <div className="flex items-center justify-between">
           <CardTitle>Agent Availability</CardTitle>
           <div className="flex items-center gap-2">
-            <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AgentRole | 'all')}>
+            <Select value={selectedRole || 'all'} onValueChange={(value) => setSelectedRole(value as AgentRole | 'all')}>
               <SelectTrigger className="w-[140px] h-8">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>

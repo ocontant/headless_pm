@@ -128,7 +128,7 @@ export function AgentFilters({ onFiltersChange }: AgentFiltersProps) {
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Role</label>
-            <Select value={filters.role} onValueChange={(value) => updateFilter('role', value)}>
+            <Select value={filters.role || 'all'} onValueChange={(value) => updateFilter('role', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All roles" />
               </SelectTrigger>
@@ -138,14 +138,15 @@ export function AgentFilters({ onFiltersChange }: AgentFiltersProps) {
                 <SelectItem value={AgentRole.BackendDev}>Backend Developer</SelectItem>
                 <SelectItem value={AgentRole.QA}>QA Engineer</SelectItem>
                 <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
-                <SelectItem value={AgentRole.PM}>Project Manager</SelectItem>
+                <SelectItem value={AgentRole.ProjectPM}>Project Manager</SelectItem>
+                <SelectItem value={AgentRole.UIAdmin}>UI Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Skill Level</label>
-            <Select value={filters.skillLevel} onValueChange={(value) => updateFilter('skillLevel', value)}>
+            <Select value={filters.skillLevel || 'all'} onValueChange={(value) => updateFilter('skillLevel', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All levels" />
               </SelectTrigger>
@@ -160,7 +161,7 @@ export function AgentFilters({ onFiltersChange }: AgentFiltersProps) {
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Connection</label>
-            <Select value={filters.connectionType} onValueChange={(value) => updateFilter('connectionType', value)}>
+            <Select value={filters.connectionType || 'all'} onValueChange={(value) => updateFilter('connectionType', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All connections" />
               </SelectTrigger>

@@ -94,7 +94,7 @@ export function SimpleTaskBoard() {
           <div className="w-2 h-2 rounded-full bg-blue-500"></div>
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Acting as Agent:</span>
         </div>
-        <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+        <Select value={selectedAgentId || ''} onValueChange={setSelectedAgentId}>
           <SelectTrigger className="w-fit min-w-[200px] bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600">
             <SelectValue placeholder="Select an agent..." />
           </SelectTrigger>

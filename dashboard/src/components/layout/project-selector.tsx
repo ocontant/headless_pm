@@ -60,7 +60,7 @@ export function ProjectSelector({ onProjectChange, currentProject }: ProjectSele
   return (
     <div className="flex items-center gap-2">
       <Select
-        value={currentProject?.id.toString()}
+        value={currentProject?.id.toString() || ''}
         onValueChange={handleProjectSelect}
       >
         <SelectTrigger className="w-[180px] h-9">

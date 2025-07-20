@@ -284,7 +284,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <span className="text-sm text-muted-foreground block mb-1">Role:</span>
                     {isEditing ? (
                       <Select
-                        value={editData.target_role || task.target_role}
+                        value={(editData.target_role || task.target_role) || ''}
                         onValueChange={(value) => setEditData({ ...editData, target_role: value as AgentRole })}
                         disabled={updateTaskMutation.isPending}
                       >
@@ -315,7 +315,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <span className="text-sm text-muted-foreground block mb-1">Difficulty:</span>
                     {isEditing ? (
                       <Select
-                        value={editData.difficulty || task.difficulty}
+                        value={(editData.difficulty || task.difficulty) || ''}
                         onValueChange={(value) => setEditData({ ...editData, difficulty: value as TaskDifficulty })}
                         disabled={updateTaskMutation.isPending}
                       >
@@ -343,7 +343,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <span className="text-sm text-muted-foreground block mb-1">Complexity:</span>
                     {isEditing ? (
                       <Select
-                        value={editData.complexity || task.complexity}
+                        value={(editData.complexity || task.complexity) || ''}
                         onValueChange={(value) => setEditData({ ...editData, complexity: value as TaskComplexity })}
                         disabled={updateTaskMutation.isPending}
                       >
@@ -370,7 +370,7 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
                     <span className="text-sm text-muted-foreground block mb-1">Assigned Agent:</span>
                     {isEditing ? (
                       <Select
-                        value={validateSelectValue(editData.assigned_agent_id)}
+                        value={validateSelectValue(editData.assigned_agent_id) || '__none__'}
                         onValueChange={(value) => setEditData({ ...editData, assigned_agent_id: value })}
                         disabled={updateTaskMutation.isPending || assignTaskMutation.isPending}
                       >

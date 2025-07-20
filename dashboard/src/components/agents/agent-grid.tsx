@@ -30,9 +30,8 @@ const ROLE_COLORS = {
   [AgentRole.BackendDev]: 'bg-green-500 text-white',
   [AgentRole.QA]: 'bg-purple-500 text-white',
   [AgentRole.Architect]: 'bg-orange-500 text-white',
-  [AgentRole.GlobalPM]: 'bg-red-500 text-white',
   [AgentRole.ProjectPM]: 'bg-pink-500 text-white',
-  [AgentRole.PM]: 'bg-red-500 text-white' // Legacy role
+  [AgentRole.UIAdmin]: 'bg-cyan-500 text-white'
 };
 
 const SKILL_COLORS = {

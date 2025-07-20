@@ -12,7 +12,7 @@ import { Task, TaskStatus, AgentRole, TaskDifficulty, TaskComplexity } from '@/l
 import { format } from 'date-fns';
 import { TaskFilters } from './task-filters';
 import { TaskDetailModal } from './task-detail-modal';
-import { useTasks, useUpdateTaskStatus, useAgents } from '@/lib/hooks/useApi';
+import { useAllTasks, useUpdateTaskStatus, useAgents } from '@/lib/hooks/useApi';
 
 const TASK_STATUSES = [
   { key: TaskStatus.Created, label: 'CREATED', color: 'bg-slate-100 text-slate-700' },
@@ -28,7 +28,8 @@ const ROLE_COLORS = {
   [AgentRole.BackendDev]: 'bg-green-500 text-white',
   [AgentRole.QA]: 'bg-purple-500 text-white',
   [AgentRole.Architect]: 'bg-orange-500 text-white',
-  [AgentRole.PM]: 'bg-red-500 text-white'
+  [AgentRole.ProjectPM]: 'bg-red-500 text-white',
+  [AgentRole.UIAdmin]: 'bg-slate-500 text-white'
 };
 
 const DIFFICULTY_COLORS = {
@@ -224,7 +225,7 @@ function TaskColumn({
 }
 
 export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
-  const { data: tasks = [], isLoading, error, refetch } = useTasks();
+  const { data: allTasks = [], isLoading, error, refetch } = useAllTasks(filters.project);
   const { data: agents = [] } = useAgents();
   const updateTaskStatus = useUpdateTaskStatus();
   
@@ -251,8 +252,8 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
     }
   }, [selectedAgentId]);
 
-  // Apply filters to tasks
-  const filteredTasks = tasks.filter(task => {
+  // Apply filters to tasks (project filtering is handled by the API call)
+  const filteredTasks = allTasks.filter(task => {
     if (filters.role && task.target_role !== filters.role) return false;
     if (filters.difficulty && task.difficulty !== filters.difficulty) return false;
     if (filters.status && task.status !== filters.status) return false;
@@ -266,6 +267,7 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
     }
     return true;
   });
+
 
   const handleTaskClick = useCallback((task: Task) => {
     setSelectedTask(task);
@@ -346,7 +348,7 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
           <div className="w-2 h-2 rounded-full bg-blue-500"></div>
           <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Acting as Agent:</span>
         </div>
-        <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+        <Select value={selectedAgentId || ''} onValueChange={setSelectedAgentId}>
           <SelectTrigger className="w-fit min-w-[200px] bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600">
             <SelectValue placeholder="Select an agent..." />
           </SelectTrigger>

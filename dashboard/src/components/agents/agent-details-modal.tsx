@@ -60,8 +60,10 @@ export function AgentDetailsModal({ agent, isOpen, onClose }: AgentDetailsModalP
         return ['Test Automation', 'Performance Testing', 'Bug Analysis'];
       case AgentRole.Architect:
         return ['System Design', 'Microservices', 'Cloud Architecture'];
-      case AgentRole.PM:
+      case AgentRole.ProjectPM:
         return ['Agile', 'Stakeholder Management', 'Risk Assessment'];
+      case AgentRole.UIAdmin:
+        return ['User Interface', 'User Experience', 'System Administration'];
       default:
         return ['Software Development'];
     }

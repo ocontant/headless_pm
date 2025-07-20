@@ -201,7 +201,7 @@ export function TaskCreateDialog({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <Select value={selectedEpicId} onValueChange={setSelectedEpicId}>
+              <Select value={selectedEpicId || ''} onValueChange={setSelectedEpicId}>
                 <SelectTrigger className={!selectedEpicId ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Select an epic" />
                 </SelectTrigger>
@@ -237,7 +237,7 @@ export function TaskCreateDialog({
                 </Button>
               </div>
               <Select 
-                value={formData.feature_id} 
+                value={formData.feature_id || ''} 
                 onValueChange={(value) => handleChange('feature_id', value)}
                 disabled={!selectedEpicId}
               >
@@ -261,7 +261,7 @@ export function TaskCreateDialog({
             <div className="space-y-2">
               <Label htmlFor="assigned_role">Target Role *</Label>
               <Select 
-                value={formData.assigned_role} 
+                value={formData.assigned_role || ''} 
                 onValueChange={(value) => handleChange('assigned_role', value)}
               >
                 <SelectTrigger className={errors.assigned_role ? 'border-destructive' : ''}>
@@ -271,7 +271,7 @@ export function TaskCreateDialog({
                   <SelectItem value={AgentRole.FrontendDev}>Frontend Developer</SelectItem>
                   <SelectItem value={AgentRole.BackendDev}>Backend Developer</SelectItem>
                   <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
-                  <SelectItem value={AgentRole.PM}>Project Manager</SelectItem>
+                  <SelectItem value={AgentRole.ProjectPM}>Project Manager</SelectItem>
                   <SelectItem value={AgentRole.QA}>QA Engineer</SelectItem>
                 </SelectContent>
               </Select>
@@ -285,7 +285,7 @@ export function TaskCreateDialog({
               <div className="space-y-2">
                 <Label htmlFor="difficulty">Difficulty *</Label>
                 <Select 
-                  value={formData.difficulty} 
+                  value={formData.difficulty || ''} 
                   onValueChange={(value) => handleChange('difficulty', value)}
                 >
                   <SelectTrigger className={errors.difficulty ? 'border-destructive' : ''}>
@@ -305,7 +305,7 @@ export function TaskCreateDialog({
               <div className="space-y-2">
                 <Label htmlFor="complexity">Complexity *</Label>
                 <Select 
-                  value={formData.complexity} 
+                  value={formData.complexity || ''} 
                   onValueChange={(value) => handleChange('complexity', value)}
                 >
                   <SelectTrigger className={errors.complexity ? 'border-destructive' : ''}>

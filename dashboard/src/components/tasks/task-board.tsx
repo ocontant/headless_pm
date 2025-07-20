@@ -48,7 +48,7 @@ const ROLE_COLORS = {
   [AgentRole.Architect]: 'bg-orange-500 text-white',
   [AgentRole.GlobalPM]: 'bg-red-500 text-white',
   [AgentRole.ProjectPM]: 'bg-pink-500 text-white',
-  [AgentRole.PM]: 'bg-red-500 text-white' // Legacy role
+  [AgentRole.UIAdmin]: 'bg-cyan-500 text-white'
 };
 
 const DIFFICULTY_COLORS = {
@@ -386,14 +386,6 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       agentId = 'dashboard-user';
     }
     
-    console.log('HandleStatusChange debug:', {
-      selectedAgentId,
-      localStorageAgentId: localStorage.getItem('agent_id'),
-      finalAgentId: agentId,
-      taskId: task.id,
-      newStatus,
-      newStatusType: typeof newStatus
-    });
     
     try {
       const apiClient = new HeadlessPMClient();
@@ -466,7 +458,6 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       return;
     }
 
-    console.log('Extracted newStatus:', newStatus, 'Type:', typeof newStatus);
 
     // Ensure newStatus is a valid string value
     if (!newStatus || typeof newStatus !== 'string' || newStatus === task.status) return;
@@ -478,13 +469,6 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       return;
     }
 
-    console.log('About to update task status:', {
-      taskId: task.id,
-      currentStatus: task.status,
-      newStatus: newStatus,
-      newStatusType: typeof newStatus,
-      agentId
-    });
 
     // Optimistically update the local state
     const updatedTasks = localTasks.map(t => 
@@ -541,7 +525,7 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       {/* Agent Selector */}
       <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
         <span className="text-sm font-medium">Acting as Agent:</span>
-        <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+        <Select value={selectedAgentId || ''} onValueChange={setSelectedAgentId}>
           <SelectTrigger className="w-fit min-w-[200px]">
             <SelectValue placeholder="dashboard-user (default)" />
           </SelectTrigger>

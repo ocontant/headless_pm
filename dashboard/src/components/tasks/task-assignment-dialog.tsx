@@ -158,7 +158,7 @@ export function TaskAssignmentDialog({
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Select Agent
                 </label>
-                <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+                <Select value={selectedAgentId || ''} onValueChange={setSelectedAgentId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose an available agent..." />
                   </SelectTrigger>

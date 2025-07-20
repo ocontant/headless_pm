@@ -128,7 +128,8 @@ def list_tasks(status: Optional[TaskStatus], role: Optional[AgentRole], db: Sess
         query = query.where(Task.target_role == role)
     
     if project_id:
-        query = query.where(Task.project_id == project_id)
+        # Join through Feature -> Epic to filter by project
+        query = query.join(Feature, Task.feature_id == Feature.id).join(Epic, Feature.epic_id == Epic.id).where(Epic.project_id == project_id)
     
     if limit:
         query = query.limit(limit)

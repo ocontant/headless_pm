@@ -123,6 +123,35 @@ export const useTasks = () => {
   });
 };
 
+// Hook for tasks page that can fetch across all projects or specific project
+export const useAllTasks = (projectFilter?: string) => {
+  const { apiClient } = useProjectContext();
+  return useQuery({
+    queryKey: ['all-tasks', projectFilter],
+    queryFn: async () => {
+      // Temporarily set the project based on filter
+      const originalProjectId = apiClient.getCurrentProject();
+      
+      if (projectFilter && projectFilter !== 'all') {
+        // Filter by specific project
+        apiClient.setCurrentProject(parseInt(projectFilter));
+      } else {
+        // Get all tasks by clearing project filter
+        apiClient.setCurrentProject(null);
+      }
+      
+      try {
+        const tasks = await apiClient.getTasks();
+        return tasks;
+      } finally {
+        apiClient.setCurrentProject(originalProjectId);
+      }
+    },
+    refetchInterval: 10000,
+    refetchOnWindowFocus: false
+  });
+};
+
 export const useTasksByFeature = (featureId: number) => {
   const { apiClient, currentProjectId } = useProjectContext();
   return useQuery({
