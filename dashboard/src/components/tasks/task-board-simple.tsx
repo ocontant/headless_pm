@@ -89,10 +89,13 @@ export function SimpleTaskBoard() {
   return (
     <div className="space-y-4">
       {/* Agent Selector */}
-      <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-        <span className="text-sm font-medium">Acting as Agent:</span>
+      <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Acting as Agent:</span>
+        </div>
         <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
-          <SelectTrigger className="w-fit min-w-[200px]">
+          <SelectTrigger className="w-fit min-w-[200px] bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600">
             <SelectValue placeholder="Select an agent..." />
           </SelectTrigger>
           <SelectContent>
@@ -104,7 +107,10 @@ export function SimpleTaskBoard() {
           </SelectContent>
         </Select>
         {!selectedAgentId && (
-          <span className="text-xs text-amber-600">⚠️ Select an agent to move tasks</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md">
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
+            <span className="text-xs font-medium text-orange-700 dark:text-orange-400">Select an agent to enable task management</span>
+          </div>
         )}
       </div>
 

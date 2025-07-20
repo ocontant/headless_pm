@@ -18,9 +18,9 @@ const ROLE_COLORS = {
 const STATUS_COLORS = {
   [TaskStatus.Created]: 'bg-slate-300',
   [TaskStatus.UnderWork]: 'bg-blue-500',
-  [TaskStatus.DevDone]: 'bg-yellow-500',
+  [TaskStatus.DevDone]: 'bg-orange-500',
   [TaskStatus.QADone]: 'bg-purple-500',
-  [TaskStatus.DocumentationDone]: 'bg-orange-500',
+  [TaskStatus.DocumentationDone]: 'bg-amber-600',
   [TaskStatus.Committed]: 'bg-green-500',
   [TaskStatus.Evaluation]: 'bg-indigo-500',
   [TaskStatus.Approved]: 'bg-cyan-500'
@@ -211,7 +211,7 @@ export function TaskTimeline({ filters = {} }: { filters?: any }) {
               <span>Created</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded-sm border border-gray-300" />
+              <div className="w-4 h-4 bg-orange-500 rounded-sm border border-gray-300" />
               <span>Dev Done</span>
             </div>
             <div className="flex items-center gap-2">

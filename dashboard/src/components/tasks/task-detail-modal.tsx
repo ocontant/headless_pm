@@ -48,8 +48,8 @@ const ROLE_COLORS = {
 };
 
 const DIFFICULTY_COLORS = {
-  [TaskDifficulty.Junior]: 'bg-green-500 text-white',
-  [TaskDifficulty.Senior]: 'bg-yellow-500 text-white',
+  [TaskDifficulty.Junior]: 'bg-emerald-500 text-white',
+  [TaskDifficulty.Senior]: 'bg-orange-500 text-white',
   [TaskDifficulty.Principal]: 'bg-red-500 text-white'
 };
 
@@ -276,136 +276,128 @@ export function TaskDetailModal({ task, isOpen, onClose }: TaskDetailModalProps)
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">Task Details</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 {/* Role Field */}
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Role:</span>
-                  {isEditing ? (
-                    <Select
-                      value={editData.target_role || task.target_role}
-                      onValueChange={(value) => setEditData({ ...editData, target_role: value as AgentRole })}
-                      disabled={updateTaskMutation.isPending}
-                    >
-                      <SelectTrigger className="w-[180px] h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={AgentRole.FrontendDev}>Frontend Dev</SelectItem>
-                        <SelectItem value={AgentRole.BackendDev}>Backend Dev</SelectItem>
-                        <SelectItem value={AgentRole.QA}>QA</SelectItem>
-                        <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
-                        <SelectItem value={AgentRole.ProjectPM}>Project PM</SelectItem>
-                        <SelectItem value={AgentRole.UIAdmin}>UI Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={`text-xs ${ROLE_COLORS[task.target_role] || 'bg-gray-500 text-white'}`}>
-                      {task.target_role.replace('_', ' ')}
-                    </Badge>
-                  )}
+                <div className="flex items-start gap-2 min-w-0">
+                  <User className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground block mb-1">Role:</span>
+                    {isEditing ? (
+                      <Select
+                        value={editData.target_role || task.target_role}
+                        onValueChange={(value) => setEditData({ ...editData, target_role: value as AgentRole })}
+                        disabled={updateTaskMutation.isPending}
+                      >
+                        <SelectTrigger className="w-full max-w-[180px] h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={AgentRole.FrontendDev}>Frontend Dev</SelectItem>
+                          <SelectItem value={AgentRole.BackendDev}>Backend Dev</SelectItem>
+                          <SelectItem value={AgentRole.QA}>QA</SelectItem>
+                          <SelectItem value={AgentRole.Architect}>Architect</SelectItem>
+                          <SelectItem value={AgentRole.ProjectPM}>Project PM</SelectItem>
+                          <SelectItem value={AgentRole.UIAdmin}>UI Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge className={`text-xs ${ROLE_COLORS[task.target_role] || 'bg-gray-500 text-white'}`}>
+                        {task.target_role.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 {/* Difficulty Field */}
-                <div className="flex items-center gap-2">
-                  <Flag className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Difficulty:</span>
-                  {isEditing ? (
-                    <Select
-                      value={editData.difficulty || task.difficulty}
-                      onValueChange={(value) => setEditData({ ...editData, difficulty: value as TaskDifficulty })}
-                      disabled={updateTaskMutation.isPending}
-                    >
-                      <SelectTrigger className="w-[120px] h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={TaskDifficulty.Junior}>Junior</SelectItem>
-                        <SelectItem value={TaskDifficulty.Senior}>Senior</SelectItem>
-                        <SelectItem value={TaskDifficulty.Principal}>Principal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={`text-xs ${DIFFICULTY_COLORS[task.difficulty]}`}>
-                      {task.difficulty.toUpperCase()}
-                    </Badge>
-                  )}
+                <div className="flex items-start gap-2 min-w-0">
+                  <Flag className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground block mb-1">Difficulty:</span>
+                    {isEditing ? (
+                      <Select
+                        value={editData.difficulty || task.difficulty}
+                        onValueChange={(value) => setEditData({ ...editData, difficulty: value as TaskDifficulty })}
+                        disabled={updateTaskMutation.isPending}
+                      >
+                        <SelectTrigger className="w-full max-w-[120px] h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TaskDifficulty.Junior}>Junior</SelectItem>
+                          <SelectItem value={TaskDifficulty.Senior}>Senior</SelectItem>
+                          <SelectItem value={TaskDifficulty.Principal}>Principal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge className={`text-xs ${DIFFICULTY_COLORS[task.difficulty]}`}>
+                        {task.difficulty.toUpperCase()}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 {/* Complexity Field */}
-                <div className="flex items-center gap-2">
-                  <GitBranch className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Complexity:</span>
-                  {isEditing ? (
-                    <Select
-                      value={editData.complexity || task.complexity}
-                      onValueChange={(value) => setEditData({ ...editData, complexity: value as TaskComplexity })}
-                      disabled={updateTaskMutation.isPending}
-                    >
-                      <SelectTrigger className="w-[100px] h-7 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={TaskComplexity.Minor}>Minor</SelectItem>
-                        <SelectItem value={TaskComplexity.Major}>Major</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={`text-xs ${COMPLEXITY_COLORS[task.complexity]}`}>
-                      {task.complexity.toUpperCase()}
-                    </Badge>
-                  )}
+                <div className="flex items-start gap-2 min-w-0">
+                  <GitBranch className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground block mb-1">Complexity:</span>
+                    {isEditing ? (
+                      <Select
+                        value={editData.complexity || task.complexity}
+                        onValueChange={(value) => setEditData({ ...editData, complexity: value as TaskComplexity })}
+                        disabled={updateTaskMutation.isPending}
+                      >
+                        <SelectTrigger className="w-full max-w-[100px] h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={TaskComplexity.Minor}>Minor</SelectItem>
+                          <SelectItem value={TaskComplexity.Major}>Major</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge className={`text-xs ${COMPLEXITY_COLORS[task.complexity]}`}>
+                        {task.complexity.toUpperCase()}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
-                {task.assigned_agent_id && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Assigned:</span>
-                    <Badge variant="outline" className="text-xs">
-                      {task.assigned_agent_id}
-                    </Badge>
-                  </div>
-                )}
-
-                {task.locked_by && (
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Locked by:</span>
-                    <Badge variant="outline" className="text-xs">
-                      {task.locked_by}
-                    </Badge>
-                  </div>
-                )}
-
                 {/* Assigned Agent Field */}
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Assigned:</span>
-                  {isEditing ? (
-                    <Select
-                      value={validateSelectValue(editData.assigned_agent_id)}
-                      onValueChange={(value) => setEditData({ ...editData, assigned_agent_id: value })}
-                      disabled={updateTaskMutation.isPending || assignTaskMutation.isPending}
-                    >
-                      <SelectTrigger className="w-[180px] h-7 text-xs">
-                        <SelectValue placeholder="No agent assigned" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">No agent assigned</SelectItem>
-                        {agents
-                          .filter(agent => agent.role !== 'ui_admin') // Filter out UI admins
-                          .map(agent => (
-                            <SelectItem key={agent.id} value={agent.agent_id}>
-                              {agent.name || agent.agent_id} ({agent.role})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">
-                      {task.locked_by || 'No agent assigned'}
-                    </Badge>
-                  )}
+                <div className="flex items-start gap-2 min-w-0">
+                  <User className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground block mb-1">Assigned Agent:</span>
+                    {isEditing ? (
+                      <Select
+                        value={validateSelectValue(editData.assigned_agent_id)}
+                        onValueChange={(value) => setEditData({ ...editData, assigned_agent_id: value })}
+                        disabled={updateTaskMutation.isPending || assignTaskMutation.isPending}
+                      >
+                        <SelectTrigger className="w-full max-w-[200px] h-7 text-xs">
+                          <SelectValue placeholder="No agent assigned" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">No agent assigned</SelectItem>
+                          {agents
+                            .filter(agent => agent.role !== 'ui_admin') // Filter out UI admins
+                            .map(agent => (
+                              <SelectItem key={agent.id} value={agent.agent_id}>
+                                <span className="truncate">
+                                  {agent.name || agent.agent_id} ({agent.role})
+                                </span>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="outline" className="text-xs max-w-full">
+                        <span className="truncate">
+                          {task.locked_by || 'No agent assigned'}
+                        </span>
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

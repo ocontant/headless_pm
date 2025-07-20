@@ -52,8 +52,8 @@ const ROLE_COLORS = {
 };
 
 const DIFFICULTY_COLORS = {
-  [TaskDifficulty.Junior]: 'bg-green-500 text-white',
-  [TaskDifficulty.Senior]: 'bg-yellow-500 text-white',
+  [TaskDifficulty.Junior]: 'bg-emerald-500 text-white',
+  [TaskDifficulty.Senior]: 'bg-orange-500 text-white',
   [TaskDifficulty.Principal]: 'bg-red-500 text-white'
 };
 

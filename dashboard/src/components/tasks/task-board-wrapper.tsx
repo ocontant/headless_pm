@@ -23,10 +23,10 @@ export function TaskBoardWrapper({ filters = {} }: { filters?: TaskFilters }) {
   if (hasError || useSimpleDnd) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
           <div className="flex items-center gap-2">
-            <Info className="h-4 w-4 text-amber-600" />
-            <span className="text-sm text-amber-700">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm text-blue-700 dark:text-blue-300">
               Using native HTML5 drag and drop due to compatibility issues
             </span>
           </div>
