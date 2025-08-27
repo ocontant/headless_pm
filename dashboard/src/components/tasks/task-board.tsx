@@ -525,7 +525,7 @@ export function TaskBoard({ filters = {} }: { filters?: TaskFilters }) {
       {/* Agent Selector */}
       <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
         <span className="text-sm font-medium">Acting as Agent:</span>
-        <Select value={selectedAgentId || ''} onValueChange={setSelectedAgentId}>
+        <Select value={selectedAgentId || 'dashboard-user'} onValueChange={setSelectedAgentId}>
           <SelectTrigger className="w-fit min-w-[200px]">
             <SelectValue placeholder="dashboard-user (default)" />
           </SelectTrigger>

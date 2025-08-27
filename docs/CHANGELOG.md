@@ -4,6 +4,36 @@ This document tracks major changes and updates to the Headless PM system.
 
 ## Recent Major Updates (July 2025)
 
+### 🎯 UI/UX Enhancements and Permission Fixes
+**Date**: July 20, 2025  
+**Commits**: `08935fc`, `a3e8681`, `7eb597a`, `59c2498`, `6f707ad`, `dedcc6f`, `f4a815f`, `e0d9a63`
+
+#### 🚀 Dashboard User Auto-Creation and Permission Management
+- **Self-Healing Architecture**: Auto-creates dashboard-user for all projects on startup
+- **Permission Fixes**: dashboard-user now has UI_ADMIN role with full create/edit permissions
+- **Project Migration**: Automatic creation of dashboard-user for existing projects
+- **Role Cleanup**: Eliminated legacy PM references, replaced with PROJECT_PM throughout codebase
+
+#### 🎨 Enhanced User Interface
+- **Auto-Selection**: Newly created epics/features automatically selected in dropdowns
+- **Color Accessibility**: Replaced poor-contrast colors with WCAG-compliant alternatives
+- **Error Boundaries**: Comprehensive error handling with graceful fallback UI
+- **Responsive Layout**: Improved layouts with proper text truncation and overflow handling
+- **Unified Edit Experience**: Consistent edit-mode patterns across all task management interfaces
+
+#### 🐛 Critical Bug Fixes
+- **Console Logging**: Fixed infinite "Acting as Agent: dashboard-user" loop
+- **Select Component**: Fixed empty string validation errors in Select components
+- **Project Filtering**: Enhanced task filtering with proper project context isolation
+- **Service Startup**: Fixed virtual environment activation in background services
+- **API Field Matching**: Corrected frontend/backend field name mismatches (assigned_role → target_role)
+
+#### 🔧 Technical Improvements
+- **Project-Independent Filtering**: Advanced task filtering without global context coupling
+- **Task Creation**: Added branch field requirement and proper validation
+- **Error Recovery**: Enhanced form validation with clear recovery options
+- **Service Management**: Improved reliability of background service startup
+
 ### 🎯 Version 2.0.0 Release
 **Date**: July 17, 2025  
 **Commit**: Latest

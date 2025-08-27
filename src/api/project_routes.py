@@ -29,6 +29,12 @@ def create_project_endpoint(request: ProjectCreateRequest, db: Session = Depends
         instructions_path=project.instructions_path,
         project_docs_path=project.project_docs_path,
         code_guidelines_path=project.code_guidelines_path,
+        
+        # Repository configuration
+        repository_url=project.repository_url,
+        repository_main_branch=project.repository_main_branch,
+        repository_clone_path=project.repository_clone_path,
+        
         created_at=project.created_at,
         updated_at=project.updated_at
     )
@@ -74,6 +80,12 @@ def get_project_endpoint(project_id: int, db: Session = Depends(get_session)):
         instructions_path=project.instructions_path,
         project_docs_path=project.project_docs_path,
         code_guidelines_path=project.code_guidelines_path,
+        
+        # Repository configuration
+        repository_url=project.repository_url,
+        repository_main_branch=project.repository_main_branch,
+        repository_clone_path=project.repository_clone_path,
+        
         created_at=project.created_at,
         updated_at=project.updated_at,
         agent_count=agent_count,
@@ -99,6 +111,12 @@ def update_project_endpoint(
         instructions_path=project.instructions_path,
         project_docs_path=project.project_docs_path,
         code_guidelines_path=project.code_guidelines_path,
+        
+        # Repository configuration
+        repository_url=project.repository_url,
+        repository_main_branch=project.repository_main_branch,
+        repository_clone_path=project.repository_clone_path,
+        
         created_at=project.created_at,
         updated_at=project.updated_at
     )

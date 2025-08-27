@@ -145,7 +145,7 @@ class TestAgentRoutes:
         # Create PM agent
         pm_agent = Agent(
             agent_id="pm_agent",
-            role=AgentRole.PM,
+            role=AgentRole.PROJECT_PM,
             level=DifficultyLevel.SENIOR
         )
         session.add(pm_agent)
@@ -188,7 +188,7 @@ class TestEpicRoutes:
         # Create PM agent
         pm_agent = Agent(
             agent_id="pm_agent",
-            role=AgentRole.PM,
+            role=AgentRole.PROJECT_PM,
             level=DifficultyLevel.SENIOR
         )
         session.add(pm_agent)
@@ -252,7 +252,7 @@ class TestTaskRoutes:
     def test_create_task(self, client, api_headers, session):
         """Test creating a task"""
         # Create dependencies
-        agent = Agent(agent_id="creator", role=AgentRole.PM, level=DifficultyLevel.SENIOR)
+        agent = Agent(agent_id="creator", role=AgentRole.PROJECT_PM, level=DifficultyLevel.SENIOR)
         session.add(agent)
         session.commit()
         session.refresh(agent)
@@ -333,7 +333,7 @@ class TestTaskRoutes:
     def test_lock_task(self, client, api_headers, session):
         """Test locking a task"""
         # Create dependencies
-        agent = Agent(agent_id="creator", role=AgentRole.PM, level=DifficultyLevel.SENIOR)
+        agent = Agent(agent_id="creator", role=AgentRole.PROJECT_PM, level=DifficultyLevel.SENIOR)
         session.add(agent)
         
         locker_agent = Agent(agent_id="locker", role=AgentRole.BACKEND_DEV, level=DifficultyLevel.SENIOR)
@@ -375,7 +375,7 @@ class TestTaskRoutes:
     def test_update_task_status(self, client, api_headers, session):
         """Test updating task status"""
         # Create dependencies
-        agent = Agent(agent_id="creator", role=AgentRole.PM, level=DifficultyLevel.SENIOR)
+        agent = Agent(agent_id="creator", role=AgentRole.PROJECT_PM, level=DifficultyLevel.SENIOR)
         session.add(agent)
         session.commit()
         session.refresh(agent)

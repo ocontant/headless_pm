@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
-  Settings, 
   Trash2, 
   Users, 
   Briefcase,
@@ -145,7 +144,11 @@ export default function ProjectsPage() {
         {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects?.map((project) => (
-            <Card key={project.id} className="relative">
+            <Card 
+              key={project.id} 
+              className="relative cursor-pointer hover:shadow-lg transition-shadow"
+              onDoubleClick={() => setEditingProject(project)}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -212,18 +215,6 @@ export default function ProjectsPage() {
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => setEditingProject(project)}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Configure
-                    </Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>

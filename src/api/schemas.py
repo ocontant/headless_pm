@@ -17,7 +17,7 @@ class ProjectCreateRequest(BaseModel):
     code_guidelines_path: Optional[str] = Field(None, description="Path to code guidelines")
     
     # Repository configuration
-    repository_url: str = Field(..., description="Git repository URL (e.g., https://github.com/user/repo.git)")
+    repository_url: Optional[str] = Field(None, description="Git repository URL (auto-generated if not provided)")
     repository_main_branch: str = Field("main", description="Main branch name (e.g., main, master)")
     repository_clone_path: Optional[str] = Field(None, description="Local path where repository should be cloned")
 

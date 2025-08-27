@@ -65,11 +65,8 @@ def run_migration():
                 WHERE repository_url IS NULL
             """))
             
-            # Make repository_url NOT NULL after setting placeholders
-            connection.execute(text("""
-                ALTER TABLE project 
-                ALTER COLUMN repository_url SET NOT NULL
-            """))
+            # SQLite doesn't support ALTER COLUMN SET NOT NULL
+            # The field will be effectively required by the application layer
             
             connection.commit()
             print("✅ Repository fields migration completed successfully!")

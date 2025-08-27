@@ -84,7 +84,7 @@ def test_stale_lock_cleanup_and_task_assignment(session: Session):
     # Create a creator agent
     creator_agent = Agent(
         agent_id="test_creator",
-        role=AgentRole.PM,
+        role=AgentRole.PROJECT_PM,
         level=DifficultyLevel.SENIOR,
         last_seen=datetime.utcnow()
     )
@@ -177,7 +177,7 @@ def test_stale_lock_cleanup_function(session: Session):
     
     creator_agent = Agent(
         agent_id="test_creator_2",
-        role=AgentRole.PM,
+        role=AgentRole.PROJECT_PM,
         level=DifficultyLevel.SENIOR,
         last_seen=datetime.utcnow()
     )

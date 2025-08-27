@@ -42,6 +42,16 @@ export function ProjectCreateDialog({
     repository_main_branch: 'main',
     repository_clone_path: ''
   });
+
+  // Auto-generate repository URL based on project name
+  const generateRepositoryUrl = (projectName: string) => {
+    if (!projectName.trim()) return '';
+    const sanitizedName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    // Use environment variables for hostname and port configuration
+    const hostname = process.env.NEXT_PUBLIC_HOSTNAME || 'localhost';
+    const gitPort = process.env.NEXT_PUBLIC_GIT_HTTP_PORT || '8080';
+    return `http://${hostname}:${gitPort}/git/${sanitizedName}.git`;
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,9 +74,8 @@ export function ProjectCreateDialog({
       if (!formData.project_docs_path.trim()) {
         newErrors.project_docs_path = 'Project docs path is required';
       }
-      if (!formData.repository_url.trim()) {
-        newErrors.repository_url = 'Repository URL is required';
-      }
+      // Auto-generate repository URL if not provided
+      const finalRepositoryUrl = formData.repository_url.trim() || generateRepositoryUrl(formData.name);
       if (!formData.repository_main_branch.trim()) {
         newErrors.repository_main_branch = 'Main branch name is required';
       }
@@ -86,7 +95,7 @@ export function ProjectCreateDialog({
         code_guidelines_path: formData.code_guidelines_path.trim() || undefined,
         
         // Repository configuration
-        repository_url: formData.repository_url.trim(),
+        repository_url: finalRepositoryUrl,
         repository_main_branch: formData.repository_main_branch.trim(),
         repository_clone_path: formData.repository_clone_path.trim() || undefined
       });
@@ -119,6 +128,13 @@ export function ProjectCreateDialog({
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-generate repository URL when project name changes (if URL is empty)
+    if (field === 'name' && !formData.repository_url.trim()) {
+      const generatedUrl = generateRepositoryUrl(value);
+      setFormData(prev => ({ ...prev, repository_url: generatedUrl }));
+    }
+    
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -135,9 +151,9 @@ export function ProjectCreateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto pr-2">
-          <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-4">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 gap-4 space-y-6">
             {/* Project Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Project Name *</Label>
@@ -241,10 +257,10 @@ export function ProjectCreateDialog({
               <h3 className="text-lg font-medium">Repository Configuration</h3>
               
               <div className="space-y-2">
-                <Label htmlFor="repository_url">Repository URL *</Label>
+                <Label htmlFor="repository_url">Repository URL</Label>
                 <Input
                   id="repository_url"
-                  placeholder="https://github.com/user/repo.git"
+                  placeholder="Auto-generated from project name (e.g., http://localhost:8080/git/project-name.git)"
                   value={formData.repository_url}
                   onChange={(e) => handleChange('repository_url', e.target.value)}
                   className={errors.repository_url ? 'border-destructive' : ''}
@@ -253,7 +269,7 @@ export function ProjectCreateDialog({
                   <p className="text-sm text-destructive">{errors.repository_url}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Git repository URL for this project (HTTPS or SSH)
+                  Git repository URL (auto-generated from project name if left empty)
                 </p>
               </div>
 
@@ -293,30 +309,30 @@ export function ProjectCreateDialog({
                 </div>
               </div>
             </div>
-          </div>
+            </div>
 
             {errors.submit && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                 {errors.submit}
               </div>
             )}
+          </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Project
-              </Button>
-            </DialogFooter>
-          </form>
-        </div>
+          <DialogFooter className="flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Project
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

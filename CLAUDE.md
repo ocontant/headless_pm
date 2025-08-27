@@ -61,7 +61,8 @@ python -m src.cli.main seed  # Optional: add sample data
 
 # Database initialization automatically creates:
 # - Default "Headless-PM" project (ID: 1)
-# - dashboard-user agent (project_pm role, senior level)
+# - dashboard-user agent (ui_admin role, senior level)
+# - Auto-creates dashboard-user for all existing projects on startup
 ```
 
 ### Running the Application
@@ -233,6 +234,7 @@ headless-pm/
 ├── migrations/            # Database migration scripts
 │   ├── add_agent_status_column.py
 │   ├── add_project_support.py
+│   ├── create_dashboard_users_for_existing_projects.py
 │   └── run_migrations.py  # Migration runner
 ├── agent_instructions/    # Per-role markdown instructions
 ├── agents/                # Agent tools and installers
@@ -333,6 +335,7 @@ python -m src.cli.main sanity-check
 ### Available Migrations
 - `add_agent_status_column.py` - Adds agent status tracking
 - `add_project_support.py` - Adds multi-project architecture
+- `create_dashboard_users_for_existing_projects.py` - Creates dashboard-user for all projects
 - `run_migrations.py` - Orchestrates migration execution
 
 ### Migration Features
@@ -358,7 +361,9 @@ python -m src.cli.main sanity-check
 - **Task Complexity**: major (requires PR), minor (direct commit)
 - **Agent Communication**: Via documents with @mention detection
 - **Agent Types**: Client connections and MCP connections
-- **Agent Initialization**: dashboard-user automatically created during database setup
+- **Agent Initialization**: dashboard-user automatically created during database setup with UI_ADMIN role
+- **Multi-Project Dashboard Access**: Auto-creates dashboard-user for all projects on startup
+- **Self-Healing Architecture**: Ensures dashboard-user exists for all projects automatically
 - **Project Support**: Dynamic project_id resolution, no hardcoded values
 - **Service Monitoring**: Heartbeat-based health tracking with optional ping URLs
 - **Change Detection**: Efficient polling since timestamp
@@ -367,6 +372,10 @@ python -m src.cli.main sanity-check
 - **API Validation**: Pydantic models for all request/response data
 - **MCP Transport**: Multiple protocols (HTTP, SSE, WebSocket, STDIO)
 - **Token Tracking**: Usage statistics for MCP sessions
+- **Enhanced UI/UX**: Comprehensive error boundaries, improved color accessibility, responsive layouts
+- **Unified Edit Experience**: Consistent edit-mode patterns across all task management interfaces
+- **Auto-Selection**: Newly created epics/features automatically selected in dropdowns
+- **Project-Independent Filtering**: Advanced task filtering with proper project context isolation
 
 ### Testing Environment
 - Use `claude_venv` for all testing to ensure compatibility

@@ -4,8 +4,18 @@ from datetime import datetime
 
 from src.models.models import Project, Agent, Epic, Task, Document, Service
 from src.api.schemas import ProjectCreateRequest, ProjectUpdateRequest, ProjectResponse
-from src.services.project_utils import ensure_project_directories, get_project_docs_path, get_project_shared_path, get_project_instructions_path
+from src.services.project_utils import ensure_project_directories, get_project_docs_path, get_project_shared_path, get_project_instructions_path, sanitize_project_name
 from fastapi import HTTPException
+import os
+
+
+def generate_repository_url(project_name: str) -> str:
+    """Generate a standardized repository URL for a project"""
+    sanitized_name = sanitize_project_name(project_name)
+    # Get hostname and port from environment variables
+    hostname = os.getenv('HOSTNAME', 'localhost')
+    git_port = os.getenv('GIT_HTTP_PORT', '8080')
+    return f"http://{hostname}:{git_port}/git/{sanitized_name}.git"
 
 
 def create_project(request: ProjectCreateRequest, db: Session) -> Project:
@@ -18,13 +28,21 @@ def create_project(request: ProjectCreateRequest, db: Session) -> Project:
     # Ensure project directories exist and get name-based paths
     ensure_project_directories(request.name)
     
+    # Auto-generate repository URL if not provided
+    repository_url = request.repository_url or generate_repository_url(request.name)
+    
     project = Project(
         name=request.name,
         description=request.description,
         shared_path=get_project_shared_path(request.name),
         instructions_path=get_project_instructions_path(request.name),
         project_docs_path=get_project_docs_path(request.name),
-        code_guidelines_path=request.code_guidelines_path
+        code_guidelines_path=request.code_guidelines_path,
+        
+        # Repository configuration
+        repository_url=repository_url,
+        repository_main_branch=request.repository_main_branch,
+        repository_clone_path=request.repository_clone_path
     )
     
     db.add(project)
@@ -68,6 +86,13 @@ def list_projects(db: Session) -> List[ProjectResponse]:
             shared_path=project.shared_path,
             instructions_path=project.instructions_path,
             project_docs_path=project.project_docs_path,
+            code_guidelines_path=project.code_guidelines_path,
+            
+            # Repository configuration
+            repository_url=project.repository_url,
+            repository_main_branch=project.repository_main_branch,
+            repository_clone_path=project.repository_clone_path,
+            
             created_at=project.created_at,
             updated_at=project.updated_at,
             agent_count=agent_count,
@@ -87,7 +112,12 @@ def list_all_projects(db: Session) -> List[dict]:
             "id": project.id,
             "name": project.name,
             "description": project.description,
-            "created_at": project.created_at.isoformat() if project.created_at else None
+            "created_at": project.created_at.isoformat() if project.created_at else None,
+            
+            # Repository configuration
+            "repository_url": project.repository_url,
+            "repository_main_branch": project.repository_main_branch,
+            "repository_clone_path": project.repository_clone_path
         }
         for project in projects
     ]

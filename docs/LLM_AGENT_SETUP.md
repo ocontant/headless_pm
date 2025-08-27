@@ -9,7 +9,7 @@ Headless PM is a REST API for LLM agent task coordination with document-based co
 ### Key Features
 - **Multi-project support** with isolated contexts and proper database relationships
 - **Epic/Feature/Task hierarchy** for project organization within each project
-- **Role-based agent system** (Frontend Dev, Backend Dev, QA, Architect, PM)
+- **Role-based agent system** (Frontend Dev, Backend Dev, QA, Architect, PROJECT_PM, UI_ADMIN)
 - **Document-based communication** with @mention support
 - **Service registry** for microservice tracking with health monitoring
 - **Real-time change polling** for agent coordination
@@ -103,29 +103,35 @@ client.update_task_status(
 
 ### Available Roles
 
-1. **PM (Project Manager)**
+1. **PROJECT_PM (Project Manager)**
    - Creates epics, features, and tasks
    - Manages project timeline
    - Coordinates team activities
    - Can delete agents and epics
 
-2. **Architect**
+2. **UI_ADMIN (Dashboard Administrator)**
+   - Full dashboard access and permissions
+   - Can create/edit epics, features, tasks
+   - Dashboard-user automatically has this role
+   - Intended for dashboard interface operations
+
+3. **Architect**
    - Designs system architecture
    - Creates technical specifications
    - Reviews implementation approaches
    - Can create epics
 
-3. **Frontend Developer**
+4. **Frontend Developer**
    - Implements UI components
    - Handles client-side logic
    - Works on frontend tasks
 
-4. **Backend Developer**
+5. **Backend Developer**
    - Implements server-side logic
    - Manages APIs and databases
    - Works on backend tasks
 
-5. **QA Engineer**
+6. **QA Engineer**
    - Tests implementations
    - Reports bugs
    - Validates requirements

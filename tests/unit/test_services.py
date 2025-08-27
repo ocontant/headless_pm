@@ -118,7 +118,7 @@ class TestMentionService:
         # Create dependencies
         agent = Agent(
             agent_id="test_creator",
-            role=AgentRole.PM,
+            role=AgentRole.PROJECT_PM,
             level=DifficultyLevel.SENIOR
         )
         session.add(agent)

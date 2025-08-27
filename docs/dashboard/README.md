@@ -29,18 +29,21 @@ Located in the `mockups/` folder:
 - **Complete independence** from main API system
 
 ### Tech Stack
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Shadcn/ui
-- **State Management**: TanStack Query + Zustand
-- **Charts**: Recharts for data visualization
-- **Testing**: Playwright for E2E testing
+- **Frontend**: Next.js 15.4.1, React 19.1.0, TypeScript, Tailwind CSS, Shadcn/ui
+- **State Management**: TanStack Query for API state, built-in React state
+- **Charts**: Recharts for data visualization  
+- **Build Tool**: Turbopack for fast development builds
+- **Error Handling**: React Error Boundaries with graceful fallbacks
 
 ### Key Features
-1. **Real-time Updates** - Live data via WebSocket/SSE
-2. **Comprehensive Analytics** - Velocity, cycle time, quality metrics
-3. **Agent Monitoring** - Activity tracking and performance analysis
-4. **Communication Hub** - Document timeline and mention network
-5. **System Health** - Service monitoring and incident management
-6. **Advanced Filtering** - Multi-dimensional data filtering
+1. **Real-time Updates** - Live data via API polling with efficient caching
+2. **Multi-Project Support** - Complete project isolation with context switching
+3. **Enhanced Task Management** - Kanban boards with auto-selection and error boundaries
+4. **Agent Monitoring** - Activity tracking with UI_ADMIN dashboard user integration
+5. **Accessibility** - WCAG-compliant color palette and responsive layouts
+6. **Advanced Filtering** - Project-independent task filtering with proper context isolation
+7. **Auto-Creation Workflows** - Seamless epic/feature/task creation with auto-selection
+8. **Error Recovery** - Comprehensive error handling with user-friendly fallbacks
 
 ## Implementation Approach
 

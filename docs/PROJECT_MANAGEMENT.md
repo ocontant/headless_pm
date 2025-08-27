@@ -41,7 +41,7 @@ Project
 }
 ```
 
-**Permissions**: PM and Architect roles only
+**Permissions**: PROJECT_PM, Architect, and UI_ADMIN roles only
 
 ### List Projects
 **GET** `/api/v1/projects`
@@ -190,6 +190,7 @@ The `add_project_support.py` migration:
 - **Backup**: Existing data is preserved
 - **Validation**: Post-migration checks verify integrity
 - **Rollback**: Restoration scripts available if needed
+- **Dashboard User Creation**: Auto-creates dashboard-user for all projects with UI_ADMIN role
 
 ## Best Practices
 

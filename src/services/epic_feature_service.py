@@ -28,8 +28,8 @@ def create_epic(request: EpicCreateRequest, agent_id: str, db: Session) -> EpicR
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Verify agent is PM or architect using their project_id
-    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM, AgentRole.ARCHITECT], db)
+    # Verify agent is PM, architect, or UI admin using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM, AgentRole.ARCHITECT, AgentRole.UI_ADMIN], db)
     
     # Create epic with the agent's project_id
     epic = Epic(
@@ -113,8 +113,8 @@ def create_feature(request: FeatureCreateRequest, agent_id: str, db: Session) ->
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Verify agent is PM or architect using their project_id
-    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM, AgentRole.ARCHITECT], db)
+    # Verify agent is PM, architect, or UI admin using their project_id
+    verify_agent_role(agent_id, agent.project_id, [AgentRole.PROJECT_PM, AgentRole.ARCHITECT, AgentRole.UI_ADMIN], db)
     
     # Verify epic exists
     epic = db.get(Epic, request.epic_id)

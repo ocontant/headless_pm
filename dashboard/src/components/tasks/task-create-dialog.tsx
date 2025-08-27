@@ -136,18 +136,6 @@ export function TaskCreateDialog({
       if (!formData.target_role) {
         newErrors.target_role = 'Target role is required';
       }
-      // Auto-generate branch name if empty
-      let finalBranchName = formData.branch?.trim();
-      if (!finalBranchName && formData.title?.trim()) {
-        finalBranchName = generateBranchName({ 
-          title: formData.title,
-          complexity: formData.complexity as 'major' | 'minor'
-        });
-      }
-      
-      if (!finalBranchName) {
-        newErrors.branch = 'Branch name is required (will be auto-generated from title)';
-      }
       if (!formData.difficulty) {
         newErrors.difficulty = 'Difficulty level is required';
       }
@@ -155,17 +143,21 @@ export function TaskCreateDialog({
         newErrors.complexity = 'Task complexity is required';
       }
 
+      // Auto-generate branch name if empty
+      const finalBranchName = formData.branch?.trim() || (formData.title?.trim() ? generateBranchName({ 
+        title: formData.title,
+        complexity: formData.complexity as 'major' | 'minor'
+      }) : '');
+      
+      if (!finalBranchName) {
+        newErrors.branch = 'Branch name is required (will be auto-generated from title)';
+      }
+
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         setIsLoading(false);
         return;
       }
-
-      // Use the final branch name (either user-provided or auto-generated)
-      const finalBranchName = formData.branch?.trim() || generateBranchName({ 
-        title: formData.title || '',
-        complexity: formData.complexity as 'major' | 'minor'
-      });
 
       await client.createTask({
         title: formData.title?.trim() || '',

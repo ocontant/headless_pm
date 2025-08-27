@@ -28,3 +28,11 @@ SERVICER_HOST=localhost
 # this is used by the client process
 # Removed API_KEY_HEADLESS_PM - use API_KEY instead
 DASHBOARD_PORT=3001
+
+# Git HTTP Server Configuration (for future Git repository hosting)
+GIT_HTTP_PORT=8080
+HOSTNAME=localhost
+
+# Frontend Environment Variables (accessible in Next.js client-side)
+NEXT_PUBLIC_HOSTNAME=localhost
+NEXT_PUBLIC_GIT_HTTP_PORT=8080

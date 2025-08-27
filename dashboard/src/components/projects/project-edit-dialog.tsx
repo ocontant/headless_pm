@@ -37,7 +37,12 @@ export function ProjectEditDialog({
     shared_path: '',
     instructions_path: '',
     project_docs_path: '',
-    code_guidelines_path: ''
+    code_guidelines_path: '',
+    
+    // Repository configuration
+    repository_url: '',
+    repository_main_branch: 'main',
+    repository_clone_path: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -49,7 +54,12 @@ export function ProjectEditDialog({
         shared_path: project.shared_path || '',
         instructions_path: project.instructions_path || '',
         project_docs_path: project.project_docs_path || '',
-        code_guidelines_path: project.code_guidelines_path || ''
+        code_guidelines_path: project.code_guidelines_path || '',
+        
+        // Repository configuration
+        repository_url: project.repository_url || '',
+        repository_main_branch: project.repository_main_branch || 'main',
+        repository_clone_path: project.repository_clone_path || ''
       });
       setErrors({});
     }
@@ -86,7 +96,12 @@ export function ProjectEditDialog({
         shared_path: formData.shared_path.trim(),
         instructions_path: formData.instructions_path.trim(),
         project_docs_path: formData.project_docs_path.trim(),
-        code_guidelines_path: formData.code_guidelines_path.trim() || undefined
+        code_guidelines_path: formData.code_guidelines_path.trim() || undefined,
+        
+        // Repository configuration
+        repository_url: formData.repository_url.trim() || undefined,
+        repository_main_branch: formData.repository_main_branch.trim(),
+        repository_clone_path: formData.repository_clone_path.trim() || undefined
       });
 
       onProjectUpdated();
@@ -112,15 +127,17 @@ export function ProjectEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Edit Project: {project.name}</DialogTitle>
           <DialogDescription>
             Update project configuration and file paths.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4">
             {/* Project Name (read-only) */}
             <div className="space-y-2">
@@ -219,6 +236,64 @@ export function ProjectEditDialog({
               </div>
             </div>
 
+            {/* Repository Configuration */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Repository Configuration</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="repository_url">Repository URL</Label>
+                <Input
+                  id="repository_url"
+                  placeholder="Auto-generated from project name (e.g., http://localhost:8080/git/project-name.git)"
+                  value={formData.repository_url}
+                  onChange={(e) => handleChange('repository_url', e.target.value)}
+                  className={errors.repository_url ? 'border-destructive' : ''}
+                />
+                {errors.repository_url && (
+                  <p className="text-sm text-destructive">{errors.repository_url}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Git repository URL (auto-generated from project name if left empty)
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="repository_main_branch">Main Branch *</Label>
+                  <Input
+                    id="repository_main_branch"
+                    placeholder="main"
+                    value={formData.repository_main_branch}
+                    onChange={(e) => handleChange('repository_main_branch', e.target.value)}
+                    className={errors.repository_main_branch ? 'border-destructive' : ''}
+                  />
+                  {errors.repository_main_branch && (
+                    <p className="text-sm text-destructive">{errors.repository_main_branch}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Main branch name (e.g., main, master)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="repository_clone_path">Clone Path</Label>
+                  <Input
+                    id="repository_clone_path"
+                    placeholder="/opt/repos/project-name"
+                    value={formData.repository_clone_path}
+                    onChange={(e) => handleChange('repository_clone_path', e.target.value)}
+                    className={errors.repository_clone_path ? 'border-destructive' : ''}
+                  />
+                  {errors.repository_clone_path && (
+                    <p className="text-sm text-destructive">{errors.repository_clone_path}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Local path for repository clone (optional)
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Project Stats (read-only) */}
             <div className="space-y-2">
               <Label>Project Statistics</Label>
@@ -238,14 +313,16 @@ export function ProjectEditDialog({
               </div>
             </div>
           </div>
-
-          {errors.submit && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-              {errors.submit}
             </div>
-          )}
 
-          <DialogFooter>
+            {errors.submit && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                {errors.submit}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-shrink-0">
             <Button
               type="button"
               variant="outline"
